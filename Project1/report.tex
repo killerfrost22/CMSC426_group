@@ -1,0 +1,46 @@
+\documentclass{article}
+\usepackage[utf8]{inputenc}
+\usepackage[a4paper, total={6in, 8in}]{geometry}
+
+\title{CMSC426Pj1 Report}
+\author{Yizhan Ao UID: 116022064}
+\author{
+  Yingqiao, Gou\\
+  \texttt{ygou@terpmail.umd.edu}
+  \texttt{UID:115979000}
+  \and
+  Yizhan, Ao\\
+  \texttt{josephao@umd.edu}
+  \texttt{UID:116022064}
+}
+
+\date{September 22nd 2021}
+
+\begin{document}
+
+\maketitle
+
+\section{Introduction}
+\begin{enumerate}
+    \paragraphSingle-Gaussian and Gaussian-Mixture Models are utilized in various pattern recognition tasks. The model parameters are estimated usually via Maximum Likelihood Estimation (MLE) with respect to available training data. However, if only small amount of training data is available, the resulting model will not generalize well. Loosely speaking, classification performance given an unseen test set may be poor. In this paper, we propose a novel estimation technique of the model variances. Once the variances were estimated using MLE, they are multiplied by a scaling factor, which reflects the amount of uncertainty present in the limited sample set. The optimal value of the scaling factor is based on the Kullback-Leibler criterion and on the assumption that the training and test sets are sampled from the same source distribution. In addition, in the case of GMM, the proper number of components can be determined.
+\end{enumerate}
+
+\section{Single Gaussian}
+The color segmentation we need probability of the orange pixel distribution in a picture the. In Single Gaussian Color segementation there are several steps that we need to follow. 
+\begin{enumerate}
+    \item Read image: 
+    \item Convert the image to the color space 
+    \item Check if the pixel is orange or not
+    \item if the color threshold is orange then we collect these pixels and proceed
+    \item If not we go back and redo the color and detect again on another picture. 
+    \item We calculate the mean and covariance and the likelihood and posterior so we can follow the Gaussian equation and have the value of $P$
+\end{enumerate}
+
+\section{GMM}
+
+\section{Train Data }
+\section{Test Data}
+
+\section{Introduction}
+
+\end{document}
