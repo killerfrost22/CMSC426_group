@@ -4,12 +4,9 @@ close all
 
 %% Train Constant
 
-%Change to false to load from singleGaussModel.mat
 TRAIN = false;
 
 %% Initialize
-
-%Note, this folder can be made into more images. This file is scalable.
 selector = strcat('train_images', '/*.jpg');
 path = dir(selector);
 imgN = length(path);
@@ -18,44 +15,33 @@ saveFileName = 'singleGaussModel.mat';
 %% Grab All Orange Pixels from Training Data
 if(TRAIN)
     orange = [];
-    % For each image
     for i = 1:imgN
         disp(path)
         imgPath = fullfile(path(i).folder, path(i).name);
         I = imread(imgPath);
         imshow(I);
 
-        % Get Dims
         sz = size(I);
         width = sz(1);
         height = sz(2);
 
-        % Form Mask
         BW = uint8(roipoly(I));
 
-        % Get RGB values for image
         r = I(:,:,1);
         g = I(:,:,2);
         b = I(:,:,3);
         
-        % Masked image for visualization purposes
         maskedI = uint8(zeros(size(I))); 
         maskedI(:,:,1) = r .* BW;
         maskedI(:,:,2) = g .* BW;
         maskedI(:,:,3) = b .* BW;
 
-        %imshow(maskedI);
-
-        % Look at every pixel. If it's 1 in the roipoly image, it's orange.
-        % Add it to the running list of orange pixels.
         nO = 0;
         maskedI = double(maskedI);
         for x = 1:width
             for y = 1:height
                 if BW(x,y) == 1
-                    %Add to list of oranges pixels
                     orange = [orange reshape(maskedI(x,y,:),3,1)];
-                    %Increment how many orange pixels counted
                     nO = nO+1;
                 end
             end
@@ -63,7 +49,6 @@ if(TRAIN)
     end
 
     %% Calculate Mean and Covariance
-    %Go over ALL orange pixels seen to establish mean and cov
     mu = double(zeros(3,1));
 
     for i=1:nO
@@ -86,12 +71,10 @@ if(TRAIN)
     disp(sigma);
 
     %% Save Data
-
-    %Save mean and cov
-    save(saveFileName, 'mu', 'sigma');
+    save(test.mat, 'mu', 'sigma');
 else
-    load(saveFileName, 'mu', 'sigma');
-end % END IF STATEMENT
+    load(test.mat, 'mu', 'sigma');
+end 
 
 %% Predict
 threshold = .0000004;
