@@ -1,0 +1,361 @@
+
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html><head>
+      <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <!--
+This HTML was auto-generated from MATLAB code.
+To make changes, update the MATLAB code and republish this document.
+      --><title>gussian</title><meta name="generator" content="MATLAB 9.9"><link rel="schema.DC" href="http://purl.org/dc/elements/1.1/"><meta name="DC.date" content="2021-09-21"><meta name="DC.source" content="gussian.m"><style type="text/css">
+html,body,div,span,applet,object,iframe,h1,h2,h3,h4,h5,h6,p,blockquote,pre,a,abbr,acronym,address,big,cite,code,del,dfn,em,font,img,ins,kbd,q,s,samp,small,strike,strong,tt,var,b,u,i,center,dl,dt,dd,ol,ul,li,fieldset,form,label,legend,table,caption,tbody,tfoot,thead,tr,th,td{margin:0;padding:0;border:0;outline:0;font-size:100%;vertical-align:baseline;background:transparent}body{line-height:1}ol,ul{list-style:none}blockquote,q{quotes:none}blockquote:before,blockquote:after,q:before,q:after{content:'';content:none}:focus{outine:0}ins{text-decoration:none}del{text-decoration:line-through}table{border-collapse:collapse;border-spacing:0}
+
+html { min-height:100%; margin-bottom:1px; }
+html body { height:100%; margin:0px; font-family:Arial, Helvetica, sans-serif; font-size:10px; color:#000; line-height:140%; background:#fff none; overflow-y:scroll; }
+html body td { vertical-align:top; text-align:left; }
+
+h1 { padding:0px; margin:0px 0px 25px; font-family:Arial, Helvetica, sans-serif; font-size:1.5em; color:#d55000; line-height:100%; font-weight:normal; }
+h2 { padding:0px; margin:0px 0px 8px; font-family:Arial, Helvetica, sans-serif; font-size:1.2em; color:#000; font-weight:bold; line-height:140%; border-bottom:1px solid #d6d4d4; display:block; }
+h3 { padding:0px; margin:0px 0px 5px; font-family:Arial, Helvetica, sans-serif; font-size:1.1em; color:#000; font-weight:bold; line-height:140%; }
+
+a { color:#005fce; text-decoration:none; }
+a:hover { color:#005fce; text-decoration:underline; }
+a:visited { color:#004aa0; text-decoration:none; }
+
+p { padding:0px; margin:0px 0px 20px; }
+img { padding:0px; margin:0px 0px 20px; border:none; }
+p img, pre img, tt img, li img, h1 img, h2 img { margin-bottom:0px; }
+
+ul { padding:0px; margin:0px 0px 20px 23px; list-style:square; }
+ul li { padding:0px; margin:0px 0px 7px 0px; }
+ul li ul { padding:5px 0px 0px; margin:0px 0px 7px 23px; }
+ul li ol li { list-style:decimal; }
+ol { padding:0px; margin:0px 0px 20px 0px; list-style:decimal; }
+ol li { padding:0px; margin:0px 0px 7px 23px; list-style-type:decimal; }
+ol li ol { padding:5px 0px 0px; margin:0px 0px 7px 0px; }
+ol li ol li { list-style-type:lower-alpha; }
+ol li ul { padding-top:7px; }
+ol li ul li { list-style:square; }
+
+.content { font-size:1.2em; line-height:140%; padding: 20px; }
+
+pre, code { font-size:12px; }
+tt { font-size: 1.2em; }
+pre { margin:0px 0px 20px; }
+pre.codeinput { padding:10px; border:1px solid #d3d3d3; background:#f7f7f7; }
+pre.codeoutput { padding:10px 11px; margin:0px 0px 20px; color:#4c4c4c; }
+pre.error { color:red; }
+
+@media print { pre.codeinput, pre.codeoutput { word-wrap:break-word; width:100%; } }
+
+span.keyword { color:#0000FF }
+span.comment { color:#228B22 }
+span.string { color:#A020F0 }
+span.untermstring { color:#B20000 }
+span.syscmd { color:#B28C00 }
+span.typesection { color:#A0522D }
+
+.footer { width:auto; padding:10px 0px; margin:25px 0px 0px; border-top:1px dotted #878787; font-size:0.8em; line-height:140%; font-style:italic; color:#878787; text-align:left; float:none; }
+.footer p { margin:0px; }
+.footer a { color:#878787; }
+.footer a:hover { color:#878787; text-decoration:underline; }
+.footer a:visited { color:#878787; }
+
+table th { padding:7px 5px; text-align:left; vertical-align:middle; border: 1px solid #d6d4d4; font-weight:bold; }
+table td { padding:7px 5px; text-align:left; vertical-align:top; border:1px solid #d6d4d4; }
+
+
+
+
+
+  </style></head><body><div class="content"><h2>Contents</h2><div><ul><li><a href="#2">Train Constant</a></li><li><a href="#3">Initialize</a></li><li><a href="#4">Grab All Orange Pixels from Training Data</a></li><li><a href="#6">Calculate Mean and Covariance</a></li><li><a href="#7">Save Data</a></li><li><a href="#9">Predict</a></li><li><a href="#10">Helpers</a></li></ul></div><pre class="codeinput">clear
+clc
+close <span class="string">all</span>
+</pre><h2 id="2">Train Constant</h2><pre class="codeinput"><span class="comment">%Change to false to load from singleGaussModel.mat</span>
+TRAIN = false;
+</pre><h2 id="3">Initialize</h2><pre class="codeinput"><span class="comment">%Note, this folder can be made into more images. This file is scalable.</span>
+selector = strcat(<span class="string">'train_images'</span>, <span class="string">'/*.jpg'</span>);
+path = dir(selector);
+imgN = length(path);
+saveFileName = <span class="string">'singleGaussModel.mat'</span>;
+</pre><h2 id="4">Grab All Orange Pixels from Training Data</h2><pre class="codeinput"><span class="keyword">if</span>(TRAIN)
+</pre><pre class="codeinput">    orange = [];
+    <span class="comment">% For each image</span>
+    <span class="keyword">for</span> i = 1:imgN
+        disp(path)
+        imgPath = fullfile(path(i).folder, path(i).name);
+        I = imread(imgPath);
+        imshow(I);
+
+        <span class="comment">% Get Dims</span>
+        sz = size(I);
+        width = sz(1);
+        height = sz(2);
+
+        <span class="comment">% Form Mask</span>
+        BW = uint8(roipoly(I));
+
+        <span class="comment">% Get RGB values for image</span>
+        r = I(:,:,1);
+        g = I(:,:,2);
+        b = I(:,:,3);
+
+        <span class="comment">% Masked image for visualization purposes</span>
+        maskedI = uint8(zeros(size(I)));
+        maskedI(:,:,1) = r .* BW;
+        maskedI(:,:,2) = g .* BW;
+        maskedI(:,:,3) = b .* BW;
+
+        <span class="comment">%imshow(maskedI);</span>
+
+        <span class="comment">% Look at every pixel. If it's 1 in the roipoly image, it's orange.</span>
+        <span class="comment">% Add it to the running list of orange pixels.</span>
+        nO = 0;
+        maskedI = double(maskedI);
+        <span class="keyword">for</span> x = 1:width
+            <span class="keyword">for</span> y = 1:height
+                <span class="keyword">if</span> BW(x,y) == 1
+                    <span class="comment">%Add to list of oranges pixels</span>
+                    orange = [orange reshape(maskedI(x,y,:),3,1)];
+                    <span class="comment">%Increment how many orange pixels counted</span>
+                    nO = nO+1;
+                <span class="keyword">end</span>
+            <span class="keyword">end</span>
+        <span class="keyword">end</span>
+    <span class="keyword">end</span>
+</pre><h2 id="6">Calculate Mean and Covariance</h2><pre class="codeinput">    <span class="comment">%Go over ALL orange pixels seen to establish mean and cov</span>
+    mu = double(zeros(3,1));
+
+    <span class="keyword">for</span> i=1:nO
+       mu = mu + orange(:,i);
+    <span class="keyword">end</span>
+    mu = mu/nO;
+
+    disp(<span class="string">"Empirical Mean"</span>)
+    disp(mu)
+
+    sigma = double(zeros(3,3));
+
+    <span class="keyword">for</span> i=1:nO
+       a = orange(:,i)-mu;
+       sigma = sigma + (a * a');
+    <span class="keyword">end</span>
+    sigma = sigma/nO;
+
+    disp(<span class="string">"Empirical Covariance"</span>);
+    disp(sigma);
+</pre><h2 id="7">Save Data</h2><pre class="codeinput">    <span class="comment">%Save mean and cov</span>
+    save(saveFileName, <span class="string">'mu'</span>, <span class="string">'sigma'</span>);
+</pre><pre class="codeinput"><span class="keyword">else</span>
+    load(saveFileName, <span class="string">'mu'</span>, <span class="string">'sigma'</span>);
+<span class="keyword">end</span> <span class="comment">% END IF STATEMENT</span>
+</pre><pre class="codeoutput error">Error using load
+'singleGaussModel.mat' is not found in the current folder or on the MATLAB path, but exists in:
+    C:\Users\josep\OneDrive\Desktop\CMSC426\Projects\Past Projects\P2\CMSC426-master\proj1
+
+Change the MATLAB current folder or add its folder to the MATLAB path.
+
+Error in gussian (line 93)
+    load(saveFileName, 'mu', 'sigma');
+</pre><h2 id="9">Predict</h2><pre class="codeinput">threshold = .0000004;
+prior = .5;
+
+selector = strcat(<span class="string">'test_images'</span>, <span class="string">'/*.jpg'</span>);
+path = dir(selector);
+imgN = length(path);
+
+<span class="keyword">for</span> i = 1:imgN
+        disp(<span class="string">"Image"</span>)
+        disp(i)
+        <span class="comment">%disp(path)</span>
+        imgPath = fullfile(path(i).folder, path(i).name);
+        I = imread(imgPath);
+        <span class="comment">%imshow(I);</span>
+
+        <span class="comment">% Get Dims</span>
+        sz = size(I);
+        height = sz(2);
+        width = sz(1);
+
+        <span class="comment">%Init prediction image to all black</span>
+        prediction = uint8(zeros(width,height));
+
+        <span class="comment">%For each pixel in the test image</span>
+        <span class="keyword">for</span> x=1:width
+            <span class="keyword">for</span> y=1:height
+                <span class="comment">%Form RGB value</span>
+                ex = [double(I(x,y,1)); double(I(x,y,2)); double(I(x,y,3))];
+                l = likelihood(ex, sigma, mu, 3);
+                p = prob(l,prior);
+                <span class="comment">%Does our model consider it orange?</span>
+                <span class="keyword">if</span> p &gt;= threshold
+                    <span class="comment">%If so, color it white in the prediction</span>
+                    prediction(x,y) = 1;
+                <span class="keyword">end</span>
+            <span class="keyword">end</span>
+        <span class="keyword">end</span>
+        figure(<span class="string">'Name'</span>,strcat(<span class="string">'Test Image '</span>,num2str(i)));
+        imshow(prediction,[]);
+<span class="keyword">end</span>
+</pre><h2 id="10">Helpers</h2><pre class="codeinput"><span class="comment">%Bayes Rule (aka Posterior)</span>
+<span class="keyword">function</span> p = prob(likelihood, prior)
+    p = likelihood * prior;
+<span class="keyword">end</span>
+
+<span class="keyword">function</span> l = likelihood(x,sigma,mu,N)
+    a = 1/(sqrt((2*pi)^N*det(sigma)));
+    b = exp(-.5*(x-mu)'*(sigma\(x-mu)));
+    l = a*b;
+<span class="keyword">end</span>
+</pre><p class="footer"><br><a href="https://www.mathworks.com/products/matlab/">Published with MATLAB&reg; R2020b</a><br></p></div><!--
+##### SOURCE BEGIN #####
+clear
+clc
+close all
+
+%% Train Constant
+
+%Change to false to load from singleGaussModel.mat
+TRAIN = false;
+
+%% Initialize
+
+%Note, this folder can be made into more images. This file is scalable.
+selector = strcat('train_images', '/*.jpg');
+path = dir(selector);
+imgN = length(path);
+saveFileName = 'singleGaussModel.mat';
+
+%% Grab All Orange Pixels from Training Data
+if(TRAIN)
+    orange = [];
+    % For each image
+    for i = 1:imgN
+        disp(path)
+        imgPath = fullfile(path(i).folder, path(i).name);
+        I = imread(imgPath);
+        imshow(I);
+
+        % Get Dims
+        sz = size(I);
+        width = sz(1);
+        height = sz(2);
+
+        % Form Mask
+        BW = uint8(roipoly(I));
+
+        % Get RGB values for image
+        r = I(:,:,1);
+        g = I(:,:,2);
+        b = I(:,:,3);
+        
+        % Masked image for visualization purposes
+        maskedI = uint8(zeros(size(I))); 
+        maskedI(:,:,1) = r .* BW;
+        maskedI(:,:,2) = g .* BW;
+        maskedI(:,:,3) = b .* BW;
+
+        %imshow(maskedI);
+
+        % Look at every pixel. If it's 1 in the roipoly image, it's orange.
+        % Add it to the running list of orange pixels.
+        nO = 0;
+        maskedI = double(maskedI);
+        for x = 1:width
+            for y = 1:height
+                if BW(x,y) == 1
+                    %Add to list of oranges pixels
+                    orange = [orange reshape(maskedI(x,y,:),3,1)];
+                    %Increment how many orange pixels counted
+                    nO = nO+1;
+                end
+            end
+        end
+    end
+
+    %% Calculate Mean and Covariance
+    %Go over ALL orange pixels seen to establish mean and cov
+    mu = double(zeros(3,1));
+
+    for i=1:nO
+       mu = mu + orange(:,i);
+    end
+    mu = mu/nO;
+    
+    disp("Empirical Mean")
+    disp(mu)
+
+    sigma = double(zeros(3,3));
+    
+    for i=1:nO
+       a = orange(:,i)-mu;
+       sigma = sigma + (a * a');
+    end
+    sigma = sigma/nO;
+    
+    disp("Empirical Covariance");
+    disp(sigma);
+
+    %% Save Data
+
+    %Save mean and cov
+    save(saveFileName, 'mu', 'sigma');
+else
+    load(saveFileName, 'mu', 'sigma');
+end % END IF STATEMENT
+
+%% Predict
+threshold = .0000004;
+prior = .5;
+
+selector = strcat('test_images', '/*.jpg');
+path = dir(selector);
+imgN = length(path);
+
+for i = 1:imgN
+        disp("Image")
+        disp(i)
+        %disp(path)
+        imgPath = fullfile(path(i).folder, path(i).name);
+        I = imread(imgPath);
+        %imshow(I);
+        
+        % Get Dims
+        sz = size(I);
+        height = sz(2);
+        width = sz(1);
+        
+        %Init prediction image to all black
+        prediction = uint8(zeros(width,height));
+        
+        %For each pixel in the test image
+        for x=1:width
+            for y=1:height
+                %Form RGB value
+                ex = [double(I(x,y,1)); double(I(x,y,2)); double(I(x,y,3))];
+                l = likelihood(ex, sigma, mu, 3);
+                p = prob(l,prior);
+                %Does our model consider it orange?
+                if p >= threshold
+                    %If so, color it white in the prediction
+                    prediction(x,y) = 1;
+                end
+            end
+        end
+        figure('Name',strcat('Test Image ',num2str(i)));
+        imshow(prediction,[]);
+end
+
+%% Helpers
+
+%Bayes Rule (aka Posterior)
+function p = prob(likelihood, prior)
+    p = likelihood * prior;
+end
+
+function l = likelihood(x,sigma,mu,N)
+    a = 1/(sqrt((2*pi)^N*det(sigma)));
+    b = exp(-.5*(x-mu)'*(sigma\(x-mu)));
+    l = a*b;
+end
+##### SOURCE END #####
+--></body></html>
