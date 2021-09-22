@@ -71,9 +71,9 @@ if(TRAIN)
     disp(sigma);
 
     %% Save Data
-    save(test.mat, 'mu', 'sigma');
+    save(saveFileName, 'mu', 'sigma');
 else
-    load(test.mat, 'mu', 'sigma');
+    load(saveFileName, 'mu', 'sigma');
 end 
 
 %% Predict
