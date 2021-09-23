@@ -11,7 +11,6 @@ selector = strcat('train_images', '/*.jpg');
 path = dir(selector);
 imgN = length(path);
 saveFileName = 'singleGaussModel.mat';
-
 %% Grab All Orange Pixels from Training Data
 if(TRAIN)
     orange = [];
