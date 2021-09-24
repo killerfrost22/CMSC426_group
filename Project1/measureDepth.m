@@ -17,6 +17,10 @@ function dist = measureDepth(cluster)
     
         % Getting the area of the ball from mask
         n = 0;
+        [rows_curr,cols_curr] =  size(currImg);
+        if rows_curr~=rows
+            currImg = currImg';
+        end
         for row=1:rows
             for col=1:cols
                 if (currImg(row,col) == 255)
@@ -26,10 +30,14 @@ function dist = measureDepth(cluster)
         end
         area(i) = n;
     end
-    %fittedCurve = fit(area,distance,'poly2'); 
     fittedCurve = polyfit(area,distance,2); 
-    %Find the area of the circle
-    %testImg = imread(cluster);
+    x1 = linspace(0,1800);
+    y1 = polyval(fittedCurve,x1);
+    figure
+    plot(area,distance,'*');
+    hold on
+    plot(x1,y1)
+    hold off
     testImg = cluster;
     [rows, cols, ~] = size(testImg);
     

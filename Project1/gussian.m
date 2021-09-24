@@ -11,6 +11,7 @@ selector = strcat('train_images', '/*.jpg');
 path = dir(selector);
 imgN = length(path);
 saveFileName = 'singleGaussModel.mat';
+
 %% Grab All Orange Pixels from Training Data
 if(TRAIN)
     orange = [];
@@ -65,12 +66,12 @@ if(TRAIN)
        sigma = sigma + (a * a');
     end
     sigma = sigma/nO;
-    
     disp("Empirical Covariance");
     disp(sigma);
 
     %% Save Data
     save(saveFileName, 'mu', 'sigma');
+    
 else
     load(saveFileName, 'mu', 'sigma');
 end 
