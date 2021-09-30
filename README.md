@@ -3,5 +3,7 @@
 Authors: 
 Yizhan Ao
 Yingqiao Gou
+Daniel Song
+
 
 Under MIT license
