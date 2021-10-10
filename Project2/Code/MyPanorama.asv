@@ -1,23 +1,43 @@
-clear all
-clc
+
 function [pano] = MyPanorama()
 
 %% YOUR CODE HERE.
 % Must load images from ../Images/Input/
 % Must return the finished panorama.
-    location = "..\Images\train_images\Set1\";
-    curr_img = imread(location + "1.jpg");
-    next_img = imread(location + "2.jpg");
-
-    all=dir(location + '*.jpg');
-    number_images = size(all);
+%     location = "..\Images\train_images\Set1\";
+%     curr_img = imread(location + "1.jpg");
+%     next_img = imread(location + "2.jpg");
+% 
+%     all=dir(location + '*.jpg');
+%     number_images = size(all);
+%     
+%     curr_img_grayscale = rgb2gray(curr_img);
+%     next_img_grayscale = rgb2gray(next_img);
     
-    curr_img_grayscale = rgb2gray(curr_img);
-    next_img_grayscale = rgb2gray(next_img);
     
+    for img = 2:imgN
+        % ANMS    
+        I1 = getImage(img-1, path);
+        I2 = getImage(img, path);
+        imageSize(img,:) = size(I2);
+        
+        p1 = ANMS(rgb2gray(I1), N_Best, SHOW_OUTPUT);
+        p2 = ANMS(rgb2gray(I2), N_Best, SHOW_OUTPUT);
+       
+        p1
+    end
+    
+%         %% Feature Descriptor
+%         % Get filter
+%         H = fspecial(FILTER);
+%         
+%         D1 = getFeatureDescriptors(p1, H, I1);
+%         D2 = getFeatureDescriptors(p2, H, I2);
 end
 
-
+function img = getImage(i, path)
+    img = imread(fullfile(path(i).folder, path(i).name));
+end
 
 
 function p = ANMS(I, NBest, SHOW_OUTPUT) 
@@ -59,13 +79,13 @@ function p = ANMS(I, NBest, SHOW_OUTPUT)
     end
 end
 
-% function [] = displayANMS(img, x_best, y_best)
-%     imshow(img);
-%     hold on
-%     
-%     plot(x_best, y_best, 'r.');
-%     hold off
-% end
+ function [] = displayANMS(img, x_best, y_best)
+     imshow(img);
+     hold on
+     
+     plot(x_best, y_best, 'r.');
+     hold off
+ end
 
 
 function [descriptors] = feature_descriptors(img_gray, x_best, y_best)
@@ -100,23 +120,21 @@ function [descriptors] = feature_descriptors(img_gray, x_best, y_best)
     end
 end
 
-function [pt1, matchedPoints2, best_matches] = feature_matching(img1_descriptors, img2_descriptors, img1_x_best, img1_y_best, img2_x_best, img2_y_best)
-    %X = I1 - I2;
-    %ssd = sum(X(:).^2); -- to find SSD
+function [pt1, pt2, best_matches] = feature_matching(img1_descriptors, img2_descriptors, img1_x_best, img1_y_best, img2_x_best, img2_y_best)
     best_matches = [];
-    % sortrows(best_matches.',3).' where first row is i, second is j, third is ssd
+    
+    %SSD is the sum of squared difference 
     [~, n_best] = size(img1_x_best);
-    for i = 1:n_best  % i is the indx of the img1 descriptors
+    for i = 1:n_best  %the indx of the img1 descriptors
         best_j = -1;
         best_ssd = -1;
         second_best_j = -1;
         second_best_ssd = -1;
         if img1_descriptors(64, i) == 0 && img1_descriptors(37, i) == 0 && img1_descriptors(1, i) == 0
-            % If descriptor is all zeros, skip it
             continue
         end
         desc1 = img1_descriptors(:, i);
-        for j = 1:n_best  % j is the indx of the img2 descriptors
+        for j = 1:n_best  % img2 descriptors
             if img2_descriptors(64, j) == 0 && img2_descriptors(37, j) == 0 && img2_descriptors(1, j) == 0
                 % If descriptor is all zeros, skip it
                 continue
@@ -134,9 +152,7 @@ function [pt1, matchedPoints2, best_matches] = feature_matching(img1_descriptors
                 second_best_j = j;
             end
         end
-        
-        % We want the distances to be far apart
-        % We have our best j for this one, compare to second best
+       
         if second_best_ssd - best_ssd > 0.5
             v = reshape([i best_j (second_best_ssd - best_ssd)], [3 1]);
             best_matches = [best_matches v];
@@ -154,7 +170,7 @@ function [pt1, matchedPoints2, best_matches] = feature_matching(img1_descriptors
         img1_y = img1_y_best(match(1));
         img2_x = img2_x_best(match(2));
         img2_y = img2_y_best(match(2));
-        % Now, add to matchedPoints vectors
+        % vectors to be vectorization 
         pt1(indx, 1) = img1_x;
         pt1(indx, 2) = img1_y;
         pt2(indx, 1) = img2_x;
