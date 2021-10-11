@@ -1,5 +1,5 @@
     location = "..\Images\train_images\Set1\";
-    curr_img = imread(location + "1.jpg");
+    curr_img = imread(location + "1.jpg"); 
     next_img = imread(location + "2.jpg");
 
     a=dir(location + '*.jpg');
@@ -9,9 +9,9 @@
     prev_descriptors = 0;
 
 
-%     for i =2:imageSize
-     % grayscale
-     curr_img_grayscale = rgb2gray(curr_img);
+    for i =1:imageSize
+     % grayscacurr_img_grayscalele
+      = rgb2gray(curr_img);
      next_img_grayscale = rgb2gray(next_img);
 
      curr_img_corners = cornermetric(curr_img_grayscale);
