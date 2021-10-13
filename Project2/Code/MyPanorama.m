@@ -133,5 +133,5 @@ function [descriptors] = feature_descriptors(img_grayscale, x_best, y_best)
         descriptors = [descriptors standardized];
     end
 end
-
+    
 
