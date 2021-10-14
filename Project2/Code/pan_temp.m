@@ -1,8 +1,8 @@
-% location = "./"
-% directory = dir(location)
-% print(directory)
+location = "./"
+directory = dir(location)
+disp(directory)
 
-location = ".\Images\train_images\Set1\";
+location = ".\Project2\Images\train_images\Set1\";
 curr_img = imread(location + "1.jpg");
 next_img = imread(location + "2.jpg");
 
@@ -40,6 +40,8 @@ next_img = imread(location + "2.jpg");
     threshold = 5;
     [matchedDescriptors1, matchedDescriptors2, matchedp1X, matchedp1Y, matchedp2X, matchedp2Y] = getMatchedPoints(curr_img_descriptors, next_img_descriptors, curr_img_x_best, curr_img_y_best, next_img_x_best, next_img_y_best, threshold)
     % matched lines 
+
+    
 
     % RANSAC
     N_max = 200
@@ -177,48 +179,66 @@ function [matchedDescriptors1, matchedDescriptors2, matchedp1X, matchedp1Y, matc
 end
 
 function H = est_homography(X,Y,x,y)
-% H = est_homography(X,Y,x,y)
-% Compute the homography matrix from source(x,y) to destination(X,Y)
-%
-%    X,Y are coordinates of destination points
-%    x,y are coordinates of source points
-%    X/Y/x/y , each is a vector of n*1, n>= 4
-%
-%    H is the homography output 3x3
-%   (X,Y, 1)^T ~ H (x, y, 1)^T
-
-A = zeros(length(x(:))*2,9);
-
-for i = 1:length(x(:)),
- a = [x(i),y(i),1];
- b = [0 0 0];
- c = [X(i);Y(i)];
- d = -c*a;
- A((i-1)*2+1:(i-1)*2+2,1:9) = [[a b;b a] d];
+    % H = est_homography(X,Y,x,y)
+    % Compute the homography matrix from source(x,y) to destination(X,Y)
+    %
+    %    X,Y are coordinates of destination points
+    %    x,y are coordinates of source points
+    %    X/Y/x/y , each is a vector of n*1, n>= 4
+    %
+    %    H is the homography output 3x3
+    %   (X,Y, 1)^T ~ H (x, y, 1)^T
+    
+    A = zeros(length(x(:))*2,9);
+    
+    for i = 1:length(x(:)),
+     a = [x(i),y(i),1];
+     b = [0 0 0];
+     c = [X(i);Y(i)];
+     d = -c*a;
+     A((i-1)*2+1:(i-1)*2+2,1:9) = [[a b;b a] d];
+    end
+    
+    [U S V] = svd(A);
+    h = V(:,9);
+    H = reshape(h,3,3)';
 end
 
-[U S V] = svd(A);
-h = V(:,9);
-H = reshape(h,3,3)';
+function [X, Y] = apply_homography(H, x, y)
+    % [X, Y] = apply_homography(H, x, y)
+    % Use homogrphay matrix H to compute position (x,y) in the source image to
+    % the position (X,Y) in the destination image
+    %
+    % Input
+    %   H : 3*3 homography matrix, refer to setup_homography
+    %   x : the column coords vector, n*1, in the source image
+    %   y : the column coords vector, n*1, in the source image
+    % Output
+    %   X : the column coords vector, n*1, in the destination image
+    %   Y : the column coords vector, n*1, in the destination image
+    
+    p1 = [x'; y'; ones(1, length(x))];
+    q1 = H*p1;
+    q1 = q1./[q1(3, :); q1(3,:); q1(3, :)];
+    
+    X = q1(1,:)';
+    Y = q1(2, :)';
 end
 
 function [H_ls, INLIERSp1X, INLIERSp1Y, INLIERSp2X, INLIERSp2Y] = RANSAC(N_max, thresh, matchedp1X, matchedp1Y, matchedp2X, matchedp2Y)
-    total = size(matchedp1X, 1);
-    INLIERSp1X = []; 
-    INLIERSp1Y = []; 
-    INLIERSp2X = []; 
-    INLIERSp2Y = [];
-    inliers_count = 0;
-    iter = 0;
-
+    total = size(matchedp1X, 1); inliers_count = 0; iter = 0;
+    INLIERSp1X = []; INLIERSp1Y = []; INLIERSp2X = []; INLIERSp2Y = [];
+    INLIERSp1XY = []; INLIERSp2XY = [];
+    
     while (iter < N_max || (inliers_count/total) < 0.90)
+        
+        disp("========================================================================================")
         random_i = randi([1 total], 1, 4)
         % 1. Select four pairs of matched pixels (at random), 1<=i<=4, p_1i/p_2i from images 1/2.
         
-        tempX1 = matchedp1X(random_i)';
-        tempY1 = matchedp1Y(random_i)';
-        tempX2 = matchedp2X(random_i)';
-        tempY2 = matchedp2Y(random_i)';
+        tempX1 = matchedp1X(random_i); tempY1 = matchedp1Y(random_i);
+        tempX2 = matchedp2X(random_i); tempY2 = matchedp2Y(random_i);
+        
         % 2. Compute the homography matrix from the four feature pairs using est_homography
         H = est_homography(tempX1,tempY1,tempX2,tempY2)
         
@@ -227,16 +247,33 @@ function [H_ls, INLIERSp1X, INLIERSp1Y, INLIERSp2X, INLIERSp2Y] = RANSAC(N_max, 
         fprintf("");
         
         for i=1:4
-            p1 = [tempX1(i); tempY1(i); 1]
-            p2 = [tempX2(i); tempY2(i); 1]
-            Hp1 = H*p1
-            X = Hp1 - p2
+%             p1 = [tempX1(i); tempY1(i); 1];
+            p2 = [tempX2(i); tempY2(i)];
+%             Hp1 = H*p1
+            [Hp1X, Hp1Y] = apply_homography(H, [tempX1(i)], [tempY1(i)])
+            Hp1 = [Hp1X; Hp1Y]
+            X = Hp1 - p2;
             ssd = sum(X(:).^2)
             if (ssd < thresh)
-                INLIERSp1X = [INLIERSp1X; tempX1(i)];
-                INLIERSp1Y = [INLIERSp1Y; tempY1(i)];
-                INLIERSp2X = [INLIERSp2X; tempX2(i)];
-                INLIERSp2Y = [INLIERSp2Y; tempY2(i)];
+                
+                fprintf("ssd: %f < thresh: %f", ssd, thresh);
+%                 INLIERSp1X = [INLIERSp1X; tempX1(i)];
+%                 INLIERSp1Y = [INLIERSp1Y; tempY1(i)];
+%                 INLIERSp2X = [INLIERSp2X; tempX2(i)];
+%                 INLIERSp2Y = [INLIERSp2Y; tempY2(i)];
+                INLIERSp1XY = [INLIERSp1XY; [tempX1(i), tempY1(i)]]
+                INLIERSp2XY = [INLIERSp2XY; [tempX2(i), tempY2(i)]]
+                
+                if (size(INLIERSp1XY, 1) > 1)
+                    fprintf("size(INLIERSp1XY, 1) > 1");
+                end
+                
+                
+                INLIERSp1XY = unique(INLIERSp1XY, 'rows', 'stable')
+                INLIERSp2XY = unique(INLIERSp2XY, 'rows', 'stable')
+                
+                fprintf("");
+                
                 inliers_count = inliers_count + 1
             end
         end
@@ -246,13 +283,15 @@ function [H_ls, INLIERSp1X, INLIERSp1Y, INLIERSp2X, INLIERSp2Y] = RANSAC(N_max, 
     end
 
     % https://www.mathworks.com/matlabcentral/answers/373747-find-unique-in-matrix-of-x-y-coordinates
-    INLIERSp1XY = [INLIERSp1X, INLIERSp1Y]
-    INLIERSp2XY = [INLIERSp2X, INLIERSp2Y]
-    uniqueINLIERSp1XY = unique(INLIERSp1XY, 'rows', 'stable')
-    uniqueINLIERSp2XY = unique(INLIERSp2XY, 'rows', 'stable')
+%     INLIERSp1XY = [INLIERSp1X, INLIERSp1Y]
+%     INLIERSp2XY = [INLIERSp2X, INLIERSp2Y]
+%     uniqueINLIERSp1XY = unique(INLIERSp1XY, 'rows', 'stable')
+%     uniqueINLIERSp2XY = unique(INLIERSp2XY, 'rows', 'stable')
 
     % 6. Recompute least-square H on all inliers.
     H_ls = est_homography(uniqueINLIERSp1XY(:,1),uniqueINLIERSp1XY(:,2),uniqueINLIERSp2XY(:,1),uniqueINLIERSp2XY(:,2))
+    
+    fprintf("end RANSAC");
 
-    fprintf("");
+    
 end
