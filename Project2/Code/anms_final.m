@@ -93,7 +93,7 @@ function displayANMS(img, x_best, y_best)
     figure
     imshow(img)
     hold on
-    plot(x_best, y_best, 'r.')
+     plot(x_best, y_best, 'Color', 'r', 'Marker','.', 'LineStyle','-')
     hold off
 end
 
