@@ -226,21 +226,23 @@ function [X, Y] = apply_homography(H, x, y)
 end
 
 function [H_ls, INLIERSp1X, INLIERSp1Y, INLIERSp2X, INLIERSp2Y] = RANSAC(N_max, thresh, matchedp1X, matchedp1Y, matchedp2X, matchedp2Y)
+    
+%     thresh = 1e3
     total = size(matchedp1X, 1); inliers_count = 0; iter = 0;
     INLIERSp1X = []; INLIERSp1Y = []; INLIERSp2X = []; INLIERSp2Y = [];
     INLIERSp1XY = []; INLIERSp2XY = [];
     
-    while (iter < N_max || (inliers_count/total) < 0.90)
+    while (iter < N_max || ((inliers_count/total) < 0.90))
         
         disp("========================================================================================")
-        random_i = randi([1 total], 1, 4)
+        random_i = randi([1 total], 1, 4);
         % 1. Select four pairs of matched pixels (at random), 1<=i<=4, p_1i/p_2i from images 1/2.
         
         tempX1 = matchedp1X(random_i); tempY1 = matchedp1Y(random_i);
         tempX2 = matchedp2X(random_i); tempY2 = matchedp2Y(random_i);
         
         % 2. Compute the homography matrix from the four feature pairs using est_homography
-        H = est_homography(tempX1,tempY1,tempX2,tempY2)
+        H = est_homography(tempX1,tempY1,tempX2,tempY2);
         
         % 3. Compute inliers where SSD(Hp_1, p_2) < threshold
         
@@ -250,35 +252,40 @@ function [H_ls, INLIERSp1X, INLIERSp1Y, INLIERSp2X, INLIERSp2Y] = RANSAC(N_max, 
 %             p1 = [tempX1(i); tempY1(i); 1];
             p2 = [tempX2(i); tempY2(i)];
 %             Hp1 = H*p1
-            [Hp1X, Hp1Y] = apply_homography(H, [tempX1(i)], [tempY1(i)])
-            Hp1 = [Hp1X; Hp1Y]
+            [Hp1X, Hp1Y] = apply_homography(H, [tempX1(i)], [tempY1(i)]);
+            Hp1 = [Hp1X; Hp1Y];
             X = Hp1 - p2;
-            ssd = sum(X(:).^2)
+            ssd = sum(X(:).^2);
             if (ssd < thresh)
                 
-                fprintf("ssd: %f < thresh: %f", ssd, thresh);
+                fprintf("ssd: %f < thresh: %f\n", ssd, thresh);
 %                 INLIERSp1X = [INLIERSp1X; tempX1(i)];
 %                 INLIERSp1Y = [INLIERSp1Y; tempY1(i)];
 %                 INLIERSp2X = [INLIERSp2X; tempX2(i)];
 %                 INLIERSp2Y = [INLIERSp2Y; tempY2(i)];
-                INLIERSp1XY = [INLIERSp1XY; [tempX1(i), tempY1(i)]]
-                INLIERSp2XY = [INLIERSp2XY; [tempX2(i), tempY2(i)]]
+                INLIERSp1XY = [INLIERSp1XY; [tempX1(i), tempY1(i)]];
+                INLIERSp2XY = [INLIERSp2XY; [tempX2(i), tempY2(i)]];
                 
                 if (size(INLIERSp1XY, 1) > 1)
-                    fprintf("size(INLIERSp1XY, 1) > 1");
+                    disp("INLIERSp1XY: ")
+                    disp(INLIERSp1XY)
                 end
                 
-                
-                INLIERSp1XY = unique(INLIERSp1XY, 'rows', 'stable')
-                INLIERSp2XY = unique(INLIERSp2XY, 'rows', 'stable')
+                INLIERSp1XY = unique(INLIERSp1XY, 'rows', 'stable');
+                INLIERSp2XY = unique(INLIERSp2XY, 'rows', 'stable');
                 
                 fprintf("");
                 
-                inliers_count = inliers_count + 1
+%                 inliers_count = inliers_count + 1
+                inliers_count = size(INLIERSp1XY,1)
             end
         end
         % 4. Repeat the last 3 steps until you reach N_max iters or 90% of inliers.
         iter = iter + 1;
+%         N_max
+%         if (iter > 200)
+%             fprintf('')
+%         end
         % 5. Keep largest set of inliers.
     end
 
@@ -289,7 +296,7 @@ function [H_ls, INLIERSp1X, INLIERSp1Y, INLIERSp2X, INLIERSp2Y] = RANSAC(N_max, 
 %     uniqueINLIERSp2XY = unique(INLIERSp2XY, 'rows', 'stable')
 
     % 6. Recompute least-square H on all inliers.
-    H_ls = est_homography(uniqueINLIERSp1XY(:,1),uniqueINLIERSp1XY(:,2),uniqueINLIERSp2XY(:,1),uniqueINLIERSp2XY(:,2))
+    H_ls = est_homography(INLIERSp1XY(:,1),INLIERSp1XY(:,2),INLIERSp2XY(:,1),INLIERSp2XY(:,2))
     
     fprintf("end RANSAC");
 
