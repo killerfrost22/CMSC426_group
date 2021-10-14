@@ -2,6 +2,7 @@
 % directory = dir(location)
 % disp(directory)
 
+% location = ".\Project2\Images\train_images\Set1\";
 location = ".\Project2\Images\train_images\Set1\";
 curr_img = imread(location + "1.jpg");
 next_img = imread(location + "2.jpg");
@@ -26,34 +27,37 @@ next_img = imread(location + "2.jpg");
      next_img_maxes = imregionalmax(next_img_corners);
 
      % ANMS
-     [curr_img_x_best, curr_img_y_best] = ANMS(curr_img, curr_img_maxes, curr_img_corners)
-     [next_img_x_best, next_img_y_best] = ANMS(next_img, next_img_maxes, next_img_corners)
+     n_best = 500; 
+     [curr_img_x_best, curr_img_y_best] = ANMS(n_best, curr_img, curr_img_maxes, curr_img_corners)
+     [next_img_x_best, next_img_y_best] = ANMS(n_best, next_img, next_img_maxes, next_img_corners)
 
      % Display 
-%       displayANMS(curr_img, curr_img_x_best, curr_img_y_best);
-%       displayANMS(next_img, next_img_x_best, next_img_y_best);
+       displayANMS(curr_img, curr_img_x_best, curr_img_y_best);
+       displayANMS(next_img, next_img_x_best, next_img_y_best);
      % descriptor
     curr_img_descriptors = feature_descriptors(curr_img_grayscale, curr_img_x_best, curr_img_y_best)
     next_img_descriptors = feature_descriptors(next_img_grayscale, next_img_x_best, next_img_y_best)
     
+
     % matching points
-    threshold = 5;
-    [matchedDescriptors1, matchedDescriptors2, matchedp1X, matchedp1Y, matchedp2X, matchedp2Y] = getMatchedPoints(curr_img_descriptors, next_img_descriptors, curr_img_x_best, curr_img_y_best, next_img_x_best, next_img_y_best, threshold)
+    match_threshold = 0.25;
+    [matchedDescriptors1, matchedDescriptors2, matchedp1X, matchedp1Y, matchedp2X, matchedp2Y] = getMatchedPoints(curr_img_descriptors, next_img_descriptors, curr_img_x_best, curr_img_y_best, next_img_x_best, next_img_y_best, match_threshold)
     % matched lines 
 
-    
+
+    hprevImage = showMatchedFeatures(curr_img, next_img, [matchedp1X, matchedp1Y], [matchedp2X, matchedp2Y], 'montage')
+
 
     % RANSAC
     N_max = 200
-    RANSAC_thresh = 10
+    RANSAC_thresh = 1
     [H_ls, INLIERSp1X, INLIERSp1Y, INLIERSp2X, INLIERSp2Y] = RANSAC(N_max, RANSAC_thresh, matchedp1X, matchedp1Y, matchedp2X, matchedp2Y);
 
 
-    hprevImage = showMatchedFeatures(curr_img, next_img, [matchedp1X, matchedp1Y], [matchedp2X, matchedp2Y])
-    hImage = showMatchedFeatures(curr_img, next_img, [INLIERSp1X, INLIERSp1Y], [INLIERSp2X, INLIERSp2Y])
+    hImage = showMatchedFeatures(curr_img, next_img, [INLIERSp1X, INLIERSp1Y], [INLIERSp2X, INLIERSp2Y], 'montage')
 
-function [x_best, y_best] = ANMS(img, features, SHOW_OUTPUT)
-    n_best = 300; 
+    function [x_best, y_best] = ANMS(n_best, img, features, SHOW_OUTPUT)
+    
     NStrong = 0;
     [y_size, x_size, ~] = size(img);
 %    sz = size(img) 
@@ -113,7 +117,7 @@ function displayANMS(img, x_best, y_best)
     figure
     imshow(img)
     hold on
-%     plot(x_best, y_best, 'Color', 'r', 'Marker','.', 'LineStyle','-')
+%      plot(x_best, y_best, 'Color', 'r', 'Marker','.', 'LineStyle','-')
     plot(x_best, y_best, 'r.')
     hold off
 end
@@ -129,17 +133,20 @@ function [descriptors] = feature_descriptors(img_grayscale, x_best, y_best)
         y = y_best(i);
         % TODO?
         if or(or(or(x <= 21, y<=21), x + 21> x_size), y + 21 > y_size)
-            v = zeros(8*8,1);
-            descriptors = [descriptors v];
+%             v = zeros(8*8,1);
+%             descriptors = [descriptors v];
             continue;
         end
         patch = img_grayscale(y-21:y+21, x-21:x+21);
+        imshow(patch)
         % Gaussian blur
-        sig = 10;
-        blurred = imgaussfilt(patch, sig);
+        sig = 0.0001;
+%         blurred = imgaussfilt(patch, sig);
         % Resize
-        resized = imresize(blurred, [8 8]);
+%         resized = imresize(blurred, [8 8]);
+        resized = imresize(patch, [8 8]);
         % Reshape
+        imshow(resized)
         reshaped = double(reshape(resized, [64, 1]));
         % Now we need to standardize
         std_dev = std(reshaped);
@@ -147,23 +154,25 @@ function [descriptors] = feature_descriptors(img_grayscale, x_best, y_best)
         standardized = reshaped - mean_reshaped;
         standardized = standardized / std_dev;
         descriptors = [descriptors standardized];
+        disp("")
     end
+    disp("")
 end
 
 
 % fearture matching, first we need to make sure which points are matched
 function [matchedDescriptors1, matchedDescriptors2, matchedp1X, matchedp1Y, matchedp2X, matchedp2Y] = getMatchedPoints(d1, d2, p1X, p1Y, p2X, p2Y, thresh)
-    matchedp1X = [];
-    matchedp1Y = [];
-    matchedp2X = [];
-    matchedp2Y = [];
-    d1size = length(d1(1,:))
-    d2size = length(d2(2,:))
-    matchedDescriptors1 = [];
-    matchedDescriptors2 = [];
+    matchedp1X = [];matchedp1Y = [];matchedp2X = [];matchedp2Y = [];
+    d1size = length(d1(1,:));d2size = length(d2(2,:))
+    matchedDescriptors1 = [];matchedDescriptors2 = [];sumSquare = [];
+    
     for i = 1:d1size
         for j = 1:d2size
             sumSquare(j) = sum((d1(:,i) - d2(:,j)).^2);
+%             d1(:,i)
+%             d2(:,j)
+%             disp("")
+            
         end
         [sortedDist, I] = sort(sumSquare);
         ratio = sortedDist(1)/sortedDist(2);
@@ -234,7 +243,7 @@ function [H_ls, INLIERSp1X, INLIERSp1Y, INLIERSp2X, INLIERSp2Y] = RANSAC(N_max, 
     INLIERSp1X = []; INLIERSp1Y = []; INLIERSp2X = []; INLIERSp2Y = [];
     INLIERSp1XY = []; INLIERSp2XY = []; INLIERSXY = [];
     
-    while (iter < N_max || ((inliers_count/total) < 0.90))
+    while (iter < N_max || ((inliers_count/total) < 0.4))
 
         random_i = randi([1 total], 1, 4);
         % 1. Select four pairs of matched pixels (at random), 1<=i<=4, p_1i/p_2i from images 1/2.
@@ -254,7 +263,7 @@ function [H_ls, INLIERSp1X, INLIERSp1Y, INLIERSp2X, INLIERSp2Y] = RANSAC(N_max, 
             Hp1 = [Hp1X; Hp1Y];
             X = Hp1 - p2;
             ssd = sum(X(:).^2);
-            if (ssd < thresh)
+            if (ssd <= thresh)
                 
 %                 fprintf("ssd: %f < thresh: %f\n", ssd, thresh);
 
@@ -306,10 +315,10 @@ function [H_ls, INLIERSp1X, INLIERSp1Y, INLIERSp2X, INLIERSp2Y] = RANSAC(N_max, 
     INLIERSp1Y = INLIERSXY(:,2)
     INLIERSp2X = INLIERSXY(:,3)
     INLIERSp2Y = INLIERSXY(:,4)
+
+    iter
     
     fprintf("end RANSAC");
-
-    
 end
 
 function hImage = showMatchedFeatures(I1, I2, matchedPoints1, matchedPoints2, varargin)
@@ -616,3 +625,4 @@ else
     end
 end
 end
+
