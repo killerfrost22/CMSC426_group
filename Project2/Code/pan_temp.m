@@ -60,7 +60,6 @@ next_img = imread(location + "2.jpg");
     
     NStrong = 0;
     [y_size, x_size, ~] = size(img);
-%    sz = size(img) 
     x_max = [];
     y_max = [];
 
@@ -131,22 +130,26 @@ function [descriptors] = feature_descriptors(img_grayscale, x_best, y_best)
         % Patch is of size 41x41, so point is the actual center
         x = x_best(i);
         y = y_best(i);
-        % TODO?
+
         if or(or(or(x <= 21, y<=21), x + 21> x_size), y + 21 > y_size)
-%             v = zeros(8*8,1);
-%             descriptors = [descriptors v];
             continue;
         end
         patch = img_grayscale(y-21:y+21, x-21:x+21);
+%         figure;
         imshow(patch)
         % Gaussian blur
-        sig = 0.0001;
-%         blurred = imgaussfilt(patch, sig);
+        sig = 0.1;
+        blurred = imgaussfilt(patch, sig);
+
+%         figure;
+%         imshow(blurred)
+
         % Resize
-%         resized = imresize(blurred, [8 8]);
-        resized = imresize(patch, [8 8]);
+        resized = imresize(blurred, [8 8]);
+%         resized = imresize(patch, [8 8]);
         % Reshape
-        imshow(resized)
+%         imshow(resized)
+
         reshaped = double(reshape(resized, [64, 1]));
         % Now we need to standardize
         std_dev = std(reshaped);
@@ -202,7 +205,7 @@ function H = est_homography(X,Y,x,y)
     
     A = zeros(length(x(:))*2,9);
     
-    for i = 1:length(x(:)),
+    for i = 1:length(x(:))
      a = [x(i),y(i),1];
      b = [0 0 0];
      c = [X(i);Y(i)];
