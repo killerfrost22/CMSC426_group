@@ -131,7 +131,7 @@ function [descriptors] = feature_descriptors(img_grayscale, x_best, y_best)
         x = x_best(i);
         y = y_best(i);
 
-        if or(or(or(x <= 21, y<=21), x + 21> x_size), y + 21 > y_size)
+        if ((x <= 21) ||  (y<=21) || (x + 21> x_size) || (y + 21 > y_size))
             continue;
         end
         patch = img_grayscale(y-21:y+21, x-21:x+21);
