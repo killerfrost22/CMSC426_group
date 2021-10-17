@@ -54,8 +54,12 @@ hprevImage = showMatchedFeatures(img1, img2, [matchedp1X, matchedp1Y], [matchedp
 disp("")
 
 % RANSAC
-N_max = 2000000
-RANSAC_thresh = 20
+N_max = 1000000
+RANSAC_thresh = 10000
+
+N_max = 1000
+RANSAC_thresh = 10
+
 [H_ls, INLIERSp1X, INLIERSp1Y, INLIERSp2X, INLIERSp2Y] = RANSAC(N_max, RANSAC_thresh, ...
     matchedp1X, matchedp1Y, matchedp2X, matchedp2Y);
 
@@ -217,7 +221,8 @@ function [H_ls, INLIERSp1X, INLIERSp1Y, INLIERSp2X, INLIERSp2Y] = RANSAC(N_max, 
     
     while (iter < N_max && ((inliers_count/total) < 0.90))
 
-        random_i = randi([1 total], 1, 4);
+%         random_i = randi([1 total], 1, 4);
+        random_i = randperm(total, 4);
 
         % 1. Select four pairs of matched pixels (at random), 1<=i<=4, p_1i/p_2i from images 1/2.
         tempX1 = match1X(random_i); tempY1 = match1Y(random_i);
@@ -227,31 +232,69 @@ function [H_ls, INLIERSp1X, INLIERSp1Y, INLIERSp2X, INLIERSp2Y] = RANSAC(N_max, 
             disp("")
         end
         
+        %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%         % 2. Compute the homography matrix from the four feature pairs using est_homography
+%         H = est_homography(tempX1,tempY1,tempX2,tempY2);
+%         
+%         % 3. Compute inliers where SSD(Hp_1, p_2) < threshold
+%         for i=1:4
+% 
+%             p2 = [tempX2(i); tempY2(i)];
+%             [Hp1X, Hp1Y] = apply_homography(H, [tempX1(i)], [tempY1(i)]);
+%             Hp1 = [Hp1X; Hp1Y];            
+%             
+% %             p2 = [tempX2(i); tempY2(i); 1];
+% %             p1 = [tempX1(i); tempY1(i); 1];
+% %             Hp1 = H*p1;
+%             
+%             X = Hp1 - p2;
+%             ssd = sum(X(:).^2);
+%             
+%             if (ismember(346,tempX1) || ismember(312,tempX1) || ismember(407,tempX1))
+%                 disp("")
+%             end
+%             
+% %             ssds = [ssds ssd];
+%             if (ssd < thresh)
+%                 if (tempX1(i) == 346 || tempX1(i)==312 || tempX1(i)==407)
+%                     disp("")
+%                 end
+%                 INLIERSXY = [INLIERSXY; [tempX1(i), tempY1(i), tempX2(i), tempY2(i)]];
+%                 INLIERSXY = unique(INLIERSXY, 'rows', 'stable');
+%                 inliers_count = size(INLIERSXY,1);
+%                 fprintf("iter: %d, ssd: %f, percentage: %f\n", iter, ssd, (inliers_count/total))
+%             end
+%         end
+
         % 2. Compute the homography matrix from the four feature pairs using est_homography
         H = est_homography(tempX1,tempY1,tempX2,tempY2);
         
         % 3. Compute inliers where SSD(Hp_1, p_2) < threshold
-        for i=1:4
-%             p1 = [tempX1(i); tempY1(i); 1];
-            p2 = [tempX2(i); tempY2(i)];
-%             Hp1 = H*p1
-            [Hp1X, Hp1Y] = apply_homography(H, [tempX1(i)], [tempY1(i)]);
-            Hp1 = [Hp1X; Hp1Y];
-            X = Hp1 - p2;
-            ssd = sum(X(:).^2);
-            
+
+        p2 = [tempX2, tempY2];
+        [Hp1X, Hp1Y] = apply_homography(H, tempX1, tempY1);
+        Hp1 = [Hp1X, Hp1Y];
+        X = Hp1 - p2;
+        ssd = sum(X(:).^2);
+        
+%         if (ismember(346,tempX1) || ismember(312,tempX1) || ismember(407,tempX1))
+%             ssd
+%             disp("")
+%         end
+        
+        if (ssd < thresh)
             if (ismember(346,tempX1) || ismember(312,tempX1) || ismember(407,tempX1))
+                ssd
                 disp("")
             end
-            
-%             ssds = [ssds ssd];
-            if (ssd <= thresh)
+            for i=1:4
                 INLIERSXY = [INLIERSXY; [tempX1(i), tempY1(i), tempX2(i), tempY2(i)]];
                 INLIERSXY = unique(INLIERSXY, 'rows', 'stable');
                 inliers_count = size(INLIERSXY,1);
-                fprintf("iter: %d, ssd: %f, percentage: %f\n", iter, ssd, (inliers_count/total))
             end
+            fprintf("iter: %d, ssd: %f, percentage: %f\n", iter, ssd, (inliers_count/total))
         end
+        
         % 4. Repeat the last 3 steps until you reach N_max iters or 90% of inliers.
         iter = iter + 1;
         % 5. Keep largest set of inliers.
