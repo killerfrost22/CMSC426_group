@@ -45,7 +45,7 @@ displayANMS(img1, filteredX1, filteredY1);
 displayANMS(img2, filteredX2, filteredY2);
 
 % matching points
-match_threshold = 0.5;
+match_threshold = 0.55;
 [matchedp1X, matchedp1Y, matchedp2X, matchedp2Y] = getMatchedPoints(match_threshold, ...
     d1, d2, filteredX1, filteredY1, filteredX2, filteredY2)
 % matched lines 
@@ -53,17 +53,15 @@ match_threshold = 0.5;
 hprevImage = showMatchedFeatures(img1, img2, [matchedp1X, matchedp1Y], [matchedp2X, matchedp2Y], 'montage')
 disp("")
 
-%     % RANSAC
-%     N_max = 200
-%     RANSAC_thresh = 1
-%     [H_ls, INLIERSp1X, INLIERSp1Y, INLIERSp2X, INLIERSp2Y] = RANSAC(N_max, RANSAC_thresh, matchedp1X, matchedp1Y, matchedp2X, matchedp2Y);
-
-% 
-%     hImage = showMatchedFeatures(curr_img, next_img, [INLIERSp1X, INLIERSp1Y], [INLIERSp2X, INLIERSp2Y], 'montage')
+% RANSAC
+N_max = 2000000
+RANSAC_thresh = 20
+[H_ls, INLIERSp1X, INLIERSp1Y, INLIERSp2X, INLIERSp2Y] = RANSAC(N_max, RANSAC_thresh, ...
+    matchedp1X, matchedp1Y, matchedp2X, matchedp2Y);
 
 
-% fearture matching, first we need to make sure which points are matched
-% function [matchedDescriptors1, matchedDescriptors2, matchedp1X, matchedp1Y, matchedp2X, matchedp2Y] = getMatchedPoints(d1, d2, p1X, p1Y, p2X, p2Y, thresh)
+hImage = showMatchedFeatures(img1, img2, [INLIERSp1X, INLIERSp1Y], [INLIERSp2X, INLIERSp2Y], 'montage')
+disp("")
 
 function [descriptors, X, Y] = feature_descriptors(img_grayscale, x, y)
     [~, n_best] = size(x);
@@ -98,24 +96,15 @@ end
 function [matchedp1X, matchedp1Y, matchedp2X, matchedp2Y] = getMatchedPoints(thresh, d1, d2, p1X, p1Y, p2X, p2Y)
     matchedp1X = [];matchedp1Y = [];matchedp2X = [];matchedp2Y = [];
     d1size = length(d1(1,:));d2size = length(d2(2,:));
-%     matchedDescriptors1 = [];matchedDescriptors2 = [];
-    
-    
+
     for i = 1:d1size
         sumSquare = zeros(1,d2size);
         for j = 1:d2size
             sumSquare(j) = sum((d1(:,i) - d2(:,j)).^2);
-%             d1(:,i)
-%             d2(:,j)
-%             disp("")
-            
         end
         [sortedDist, I] = sort(sumSquare);
         ratio = sortedDist(1)/sortedDist(2);
         if (ratio < thresh)
-%             matchedDescriptors1 = [matchedDescriptors1, d1(:,i)];
-%             matchedDescriptors2 = [matchedDescriptors2, d2(:,I(1))];
-
             matchedp1X = [matchedp1X; p1X(i)];
             matchedp1Y = [matchedp1Y; p1Y(i)];
 
@@ -220,20 +209,23 @@ function [X, Y] = apply_homography(H, x, y)
     Y = q1(2, :)';
 end
 
-function [H_ls, INLIERSp1X, INLIERSp1Y, INLIERSp2X, INLIERSp2Y] = RANSAC(N_max, thresh, matchedp1X, matchedp1Y, matchedp2X, matchedp2Y)
+function [H_ls, INLIERSp1X, INLIERSp1Y, INLIERSp2X, INLIERSp2Y] = RANSAC(N_max, thresh, match1X, match1Y, match2X, match2Y)
     
-%     thresh = 1e3
-    total = size(matchedp1X, 1); inliers_count = 0; iter = 0;
-    INLIERSp1X = []; INLIERSp1Y = []; INLIERSp2X = []; INLIERSp2Y = [];
-    INLIERSp1XY = []; INLIERSp2XY = []; INLIERSXY = [];
+    total = size(match1X, 1); inliers_count = 0; iter = 0;
+    INLIERSXY = [];
+    ssds = [];
     
-    while (iter < N_max || ((inliers_count/total) < 0.4))
+    while (iter < N_max && ((inliers_count/total) < 0.90))
 
         random_i = randi([1 total], 1, 4);
+
         % 1. Select four pairs of matched pixels (at random), 1<=i<=4, p_1i/p_2i from images 1/2.
+        tempX1 = match1X(random_i); tempY1 = match1Y(random_i);
+        tempX2 = match2X(random_i); tempY2 = match2Y(random_i);
         
-        tempX1 = matchedp1X(random_i); tempY1 = matchedp1Y(random_i);
-        tempX2 = matchedp2X(random_i); tempY2 = matchedp2Y(random_i);
+        if (ismember(346,tempX1) || ismember(312,tempX1) || ismember(407,tempX1))
+            disp("")
+        end
         
         % 2. Compute the homography matrix from the four feature pairs using est_homography
         H = est_homography(tempX1,tempY1,tempX2,tempY2);
@@ -247,52 +239,26 @@ function [H_ls, INLIERSp1X, INLIERSp1Y, INLIERSp2X, INLIERSp2Y] = RANSAC(N_max, 
             Hp1 = [Hp1X; Hp1Y];
             X = Hp1 - p2;
             ssd = sum(X(:).^2);
+            
+            if (ismember(346,tempX1) || ismember(312,tempX1) || ismember(407,tempX1))
+                disp("")
+            end
+            
+%             ssds = [ssds ssd];
             if (ssd <= thresh)
-                
-%                 fprintf("ssd: %f < thresh: %f\n", ssd, thresh);
-
-%                 INLIERSp1X = [INLIERSp1X; tempX1(i)];
-%                 INLIERSp1Y = [INLIERSp1Y; tempY1(i)];
-%                 INLIERSp2X = [INLIERSp2X; tempX2(i)];
-%                 INLIERSp2Y = [INLIERSp2Y; tempY2(i)];
-
-%                 INLIERSp1XY = [INLIERSp1XY; [tempX1(i), tempY1(i)]];
-%                 INLIERSp2XY = [INLIERSp2XY; [tempX2(i), tempY2(i)]];
-
                 INLIERSXY = [INLIERSXY; [tempX1(i), tempY1(i), tempX2(i), tempY2(i)]];
-                
-%                 if (size(INLIERSp1XY, 1) > 1)
-%                 disp("========================================================================================")
-%                 disp("INLIERSp1XY: ")
-%                 disp(INLIERSp1XY)
-%                 end
-                
-%                 INLIERSp1XY = unique(INLIERSp1XY, 'rows', 'stable');
-%                 INLIERSp2XY = unique(INLIERSp2XY, 'rows', 'stable');
                 INLIERSXY = unique(INLIERSXY, 'rows', 'stable');
-                
-%                 inliers_count = inliers_count + 1
                 inliers_count = size(INLIERSXY,1);
+                fprintf("iter: %d, ssd: %f, percentage: %f\n", iter, ssd, (inliers_count/total))
             end
         end
         % 4. Repeat the last 3 steps until you reach N_max iters or 90% of inliers.
         iter = iter + 1;
-%         N_max
-%         if (iter > 200)
-%             fprintf('')
-%         end
         % 5. Keep largest set of inliers.
     end
 
-    % https://www.mathworks.com/matlabcentral/answers/373747-find-unique-in-matrix-of-x-y-coordinates
-%     INLIERSp1XY = [INLIERSp1X, INLIERSp1Y]
-%     INLIERSp2XY = [INLIERSp2X, INLIERSp2Y]
-%     uniqueINLIERSp1XY = unique(INLIERSp1XY, 'rows', 'stable')
-%     uniqueINLIERSp2XY = unique(INLIERSp2XY, 'rows', 'stable')
-
-    % 6. Recompute least-square H on all inliers.
-%     H_ls = est_homography(INLIERSp1XY(:,1),INLIERSp1XY(:,2),INLIERSp2XY(:,1),INLIERSp2XY(:,2))
-    
+    ssds
+    % 6. Recompute least-square H on all inliers.    
     H_ls = est_homography(INLIERSXY(:,1),INLIERSXY(:,2),INLIERSXY(:,3),INLIERSXY(:,4))
     
     INLIERSp1X = INLIERSXY(:,1)
