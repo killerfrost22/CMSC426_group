@@ -31,8 +31,8 @@ n_best = 500;
 [X2, Y2] = ANMS(n_best, gray2, corners2, max2)
 
 
-displayANMS(img1, X1, Y1);
-displayANMS(img2, X2, Y2);
+displayANMS(img1, Y1, X1);
+displayANMS(img2, Y2, X2);
 %        displayANMS(curr_img, curr_img_y_best, curr_img_x_best);
 %        displayANMS(next_img, next_img_y_best, next_img_x_best);
 
