@@ -68,10 +68,10 @@ disp("")
 
 % RANSAC
 N_max = 1000000
-RANSAC_thresh = 10000
+RANSAC_thresh = 1.4910
 
 % N_max = 1000
-% RANSAC_thresh = 10
+RANSAC_thresh = 10
 
 [H_ls, INLIERSp1X, INLIERSp1Y, INLIERSp2X, INLIERSp2Y] = RANSAC(N_max, RANSAC_thresh, ...
     matchedp1X, matchedp1Y, matchedp2X, matchedp2Y);
@@ -92,12 +92,16 @@ function [descriptors, X, Y] = feature_descriptors(img_grayscale, x, y)
         if (((x_i-19) >= 1) &&  ((y_i-19)>=1) && ((x_i + 20) <= x_size) && ((y_i + 20) <= y_size))
             
             patch = img_grayscale(x_i-19:x_i+20, y_i-19:y_i+20);
-            blurred = imgaussfilt(patch);
-%             blurred = patch;
-            resized = imresize(blurred, [8 8]);
+            sig = 0.1;
+            blurred = imgaussfilt(patch, sig);
+%             imshow(patch)
+%             figure(10,10); imshow(blurred)
+
+%             resized = imresize(blurred, [8 8]);
+            resized = blurred(1:5:end, 1:5:end);
             
             reshaped = double(reshape(resized, [64, 1]));
-            % Now we need to standardize
+            
             std_dev = std(reshaped);
             mean_reshaped = mean(reshaped);
             standardized = (reshaped - mean_reshaped) ./ std_dev;
@@ -263,13 +267,15 @@ function [H_ls, INLIERSp1X, INLIERSp1Y, INLIERSp2X, INLIERSp2Y] = RANSAC(N_max, 
             X = Hp1 - p2;
             ssd = sum(X(:).^2);
             
-            if (ismember(346,tempX1) || ismember(312,tempX1) || ismember(407,tempX1))
+            if (tempX1(i) == 346 || tempX1(i)==312 || tempX1(i)==407 ...
+                        || tempX1(i)==184 || tempX1(i)==202)
                 disp("")
             end
             
 %             ssds = [ssds ssd];
             if (ssd < thresh)
-                if (tempX1(i) == 346 || tempX1(i)==312 || tempX1(i)==407)
+                if (tempX1(i) == 346 || tempX1(i)==312 || tempX1(i)==407 ...
+                        || tempX1(i)==184 || tempX1(i)==202)
                     disp("")
                 end
                 INLIERSXY = [INLIERSXY; [tempX1(i), tempY1(i), tempX2(i), tempY2(i)]];
