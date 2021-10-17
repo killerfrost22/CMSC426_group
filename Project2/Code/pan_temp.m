@@ -4,168 +4,105 @@
 
 % location = ".\Project2\Images\train_images\Set1\";
 location = ".\Project2\Images\train_images\Set1\";
-curr_img = imread(location + "1.jpg");
-next_img = imread(location + "2.jpg");
+img1 = imread(location + "1.jpg");
+img2 = imread(location + "2.jpg");
 
-    a=dir(location + '*.jpg');
-    num_images=size(a,1);
-%     tforms(num_images) = projective2d(eye(3));
-    imageSize = zeros(num_images,2);
-    prev_descriptors = 0;
-    threshold = 200;
+% a=dir(location + '*.jpg');
+% num_images=size(a,1);
+
 
     
-    % grayscale
-     curr_img_grayscale = rgb2gray(curr_img);
-     next_img_grayscale = rgb2gray(next_img);
+% grayscale
+gray1 = rgb2gray(img1);
+gray2 = rgb2gray(img2);
 
-     curr_img_corners = cornermetric(curr_img_grayscale);
-     next_img_corners = cornermetric(next_img_grayscale);
+corners1 = cornermetric(gray1);
+corners2 = cornermetric(gray2);
 
-     % imregional 
-     curr_img_maxes = imregionalmax(curr_img_corners);
-     next_img_maxes = imregionalmax(next_img_corners);
+% imregional 
+max1 = imregionalmax(corners1);
+max2 = imregionalmax(corners2);
 
-     % ANMS
-     n_best = 500; 
-     [curr_img_x_best, curr_img_y_best] = ANMS(n_best, curr_img, curr_img_corners, curr_img_maxes)
-     [next_img_x_best, next_img_y_best] = ANMS(n_best, next_img, next_img_corners, next_img_maxes)
+n_best = 500; 
+%      [curr_img_x_best, curr_img_y_best] = ANMS(n_best, curr_img, curr_img_corners, curr_img_maxes)
+%      [next_img_x_best, next_img_y_best] = ANMS(n_best, next_img, next_img_corners, next_img_maxes)
 
-     % Display 
-       displayANMS(curr_img, curr_img_x_best, curr_img_y_best);
-       displayANMS(next_img, next_img_x_best, next_img_y_best);
-     % descriptor
-    curr_img_descriptors = feature_descriptors(curr_img_grayscale, curr_img_x_best, curr_img_y_best)
-    next_img_descriptors = feature_descriptors(next_img_grayscale, next_img_x_best, next_img_y_best)
-    
-
-    % matching points
-    match_threshold = 0.25;
-    [matchedDescriptors1, matchedDescriptors2, matchedp1X, matchedp1Y, matchedp2X, matchedp2Y] = getMatchedPoints(curr_img_descriptors, next_img_descriptors, curr_img_x_best, curr_img_y_best, next_img_x_best, next_img_y_best, match_threshold)
-    % matched lines 
+[X1, Y1] = ANMS(n_best, gray1, corners1, max1)
+[X2, Y2] = ANMS(n_best, gray2, corners2, max2)
 
 
-    hprevImage = showMatchedFeatures(curr_img, next_img, [matchedp1X, matchedp1Y], [matchedp2X, matchedp2Y], 'montage')
+displayANMS(img1, X1, Y1);
+displayANMS(img2, X2, Y2);
+%        displayANMS(curr_img, curr_img_y_best, curr_img_x_best);
+%        displayANMS(next_img, next_img_y_best, next_img_x_best);
+
+[d1, filteredX1, filteredY1] = feature_descriptors(curr_img_grayscale, curr_img_x_best, curr_img_y_best)
+[d2, filteredX2, filteredY2] = feature_descriptors(next_img_grayscale, next_img_x_best, next_img_y_best)
 
 
-    % RANSAC
-    N_max = 200
-    RANSAC_thresh = 1
-    [H_ls, INLIERSp1X, INLIERSp1Y, INLIERSp2X, INLIERSp2Y] = RANSAC(N_max, RANSAC_thresh, matchedp1X, matchedp1Y, matchedp2X, matchedp2Y);
+disp("")
+displayANMS(curr_img, filteredX1, filteredY1);
+displayANMS(next_img, filteredX2, filteredY2);
+
+% matching points
+match_threshold = 0.5;
+[matchedp1X, matchedp1Y, matchedp2X, matchedp2Y] = getMatchedPoints(match_threshold, ...
+    d1, d2, filteredX1, filteredY1, filteredX2, filteredY2)
+% matched lines 
+
+hprevImage = showMatchedFeatures(curr_img, next_img, [matchedp1X, matchedp1Y], [matchedp2X, matchedp2Y], 'montage')
+disp("")
+
+%     % RANSAC
+%     N_max = 200
+%     RANSAC_thresh = 1
+%     [H_ls, INLIERSp1X, INLIERSp1Y, INLIERSp2X, INLIERSp2Y] = RANSAC(N_max, RANSAC_thresh, matchedp1X, matchedp1Y, matchedp2X, matchedp2Y);
+
+% 
+%     hImage = showMatchedFeatures(curr_img, next_img, [INLIERSp1X, INLIERSp1Y], [INLIERSp2X, INLIERSp2Y], 'montage')
 
 
-    hImage = showMatchedFeatures(curr_img, next_img, [INLIERSp1X, INLIERSp1Y], [INLIERSp2X, INLIERSp2Y], 'montage')
+% fearture matching, first we need to make sure which points are matched
+% function [matchedDescriptors1, matchedDescriptors2, matchedp1X, matchedp1Y, matchedp2X, matchedp2Y] = getMatchedPoints(d1, d2, p1X, p1Y, p2X, p2Y, thresh)
 
-    function [x_best, y_best] = ANMS(n_best, img, img_corners, img_maxes)
-    
-    NStrong = 0;
-    [ x_size, y_size,  ~] = size(img);
-    x = [];
-    y = [];
-
-%     surf(img_corners)
-%     imshow(img_maxes);
-
-%     imregionalmax is inverted
-%     cornermetric data is not inverted
-
-
-    for x_i = 1:x_size
-        for y_i = 1:y_size
-            if img_maxes(x_i,y_i) == 1
-                NStrong = NStrong + 1;
-%                 x_max = [x_max x];
-%                 y_max = [y_max y];  % array concatenation
-                x = [x y_i];
-                y = [y x_i];  % array concatenation
-            end
-        end
-    end
-    
-    r = Inf(1, NStrong);
-    for i = 1:NStrong
-        for j = 1:NStrong
-%             if img_corners(y_max(j), x_max(j)) > img_corners(y_max(i), x_max(i))
-            if img_corners(x(j), y(j)) > img_corners(x(i), y(i))
-                ED = ((x(j) - x(i))^2) + ((y(j) - y(i))^2);
-                if ED < r(i)
-                    r(i) = ED;
-                end
-            end
-        end
-    end
-    
-    x_best = zeros(1, n_best);
-    y_best = zeros(1, n_best);
-    
-    % lowest n_best points
-    [~, I] = sort(r, 'descend');
-    
-    for i = 1:n_best
-        indx = I(i);
-        x_best(i) = x(indx);
-        y_best(i) = y(indx);
-    end
-end
-
-function displayANMS(img, x_best, y_best)
-    figure
-    imshow(img)
-    hold on
-%      plot(x_best, y_best, 'Color', 'r', 'Marker','.', 'LineStyle','-')
-    plot(x_best, y_best, 'r.')
-    hold off
-end
-
-
-function [descriptors] = feature_descriptors(img_grayscale, x_best, y_best)
-    [~, n_best] = size(x_best);
+function [descriptors, X, Y] = feature_descriptors(img_grayscale, x, y)
+    [~, n_best] = size(x);
     [ x_size, y_size] = size(img_grayscale);
-    descriptors = [];
+    descriptors = []; X = []; Y = [];
     for i = 1:n_best
         % Patch is of size 41x41, so point is the actual center
-        x = x_best(i);
-        y = y_best(i);
+        x_i = x(i);
+        y_i = y(i);
 
-        if ((x <= 21) ||  (y<=21) || (x + 21> x_size) || (y + 21 > y_size))
-            continue;
+        if (((x_i-19) >= 1) &&  ((y_i-19)>=1) && ((x_i + 20) <= x_size) && ((y_i + 20) <= y_size))
+            
+            patch = img_grayscale(x_i-19:x_i+20, y_i-19:y_i+20);
+            blurred = imgaussfilt(patch);
+%             blurred = patch;
+            resized = imresize(blurred, [8 8]);
+            
+            reshaped = double(reshape(resized, [64, 1]));
+            % Now we need to standardize
+            std_dev = std(reshaped);
+            mean_reshaped = mean(reshaped);
+            standardized = (reshaped - mean_reshaped) ./ std_dev;
+            descriptors = [descriptors standardized];
+            X = [X y_i];
+            Y = [Y x_i];
+            disp("")
         end
-        patch = img_grayscale(y-21:y+21, x-21:x+21);
-%         figure;
-        imshow(patch)
-        % Gaussian blur
-        sig = 0.1;
-        blurred = imgaussfilt(patch, sig);
-
-%         figure;
-%         imshow(blurred)
-
-        % Resize
-        resized = imresize(blurred, [8 8]);
-%         resized = imresize(patch, [8 8]);
-        % Reshape
-%         imshow(resized)
-
-        reshaped = double(reshape(resized, [64, 1]));
-        % Now we need to standardize
-        std_dev = std(reshaped);
-        mean_reshaped = mean(reshaped);
-        standardized = reshaped - mean_reshaped;
-        standardized = standardized / std_dev;
-        descriptors = [descriptors standardized];
-        disp("")
     end
     disp("")
 end
 
-
-% fearture matching, first we need to make sure which points are matched
-function [matchedDescriptors1, matchedDescriptors2, matchedp1X, matchedp1Y, matchedp2X, matchedp2Y] = getMatchedPoints(d1, d2, p1X, p1Y, p2X, p2Y, thresh)
+function [matchedp1X, matchedp1Y, matchedp2X, matchedp2Y] = getMatchedPoints(thresh, d1, d2, p1X, p1Y, p2X, p2Y)
     matchedp1X = [];matchedp1Y = [];matchedp2X = [];matchedp2Y = [];
-    d1size = length(d1(1,:));d2size = length(d2(2,:))
-    matchedDescriptors1 = [];matchedDescriptors2 = [];sumSquare = [];
+    d1size = length(d1(1,:));d2size = length(d2(2,:));
+%     matchedDescriptors1 = [];matchedDescriptors2 = [];
+    
     
     for i = 1:d1size
+        sumSquare = zeros(1,d2size);
         for j = 1:d2size
             sumSquare(j) = sum((d1(:,i) - d2(:,j)).^2);
 %             d1(:,i)
@@ -176,8 +113,8 @@ function [matchedDescriptors1, matchedDescriptors2, matchedp1X, matchedp1Y, matc
         [sortedDist, I] = sort(sumSquare);
         ratio = sortedDist(1)/sortedDist(2);
         if (ratio < thresh)
-            matchedDescriptors1 = [matchedDescriptors1, d1(:,i)];
-            matchedDescriptors2 = [matchedDescriptors2, d2(:,I(1))];
+%             matchedDescriptors1 = [matchedDescriptors1, d1(:,i)];
+%             matchedDescriptors2 = [matchedDescriptors2, d2(:,I(1))];
 
             matchedp1X = [matchedp1X; p1X(i)];
             matchedp1Y = [matchedp1Y; p1Y(i)];
@@ -186,6 +123,54 @@ function [matchedDescriptors1, matchedDescriptors2, matchedp1X, matchedp1Y, matc
             matchedp2Y = [matchedp2Y; p2Y(I(1))];
         end
     end
+end
+
+function [x_best, y_best] = ANMS(n_best, gray_img, corners, maxima)
+    
+    NStrong = 0;
+    [sizeX, sizeY] = size(gray_img);
+    x = []; y = [];
+
+    for x_i = 1:sizeX
+        for y_i = 1:sizeY
+            if maxima(x_i,y_i) == 1
+                NStrong = NStrong + 1;
+                x = [x x_i];
+                y = [y y_i]; 
+            end
+        end
+    end
+    
+    r = Inf(1, NStrong);
+    for i = 1:NStrong
+        for j = 1:NStrong
+%             if img_corners(y(j), x(j)) > img_corners(y(i), x(i))
+            if corners(x(j), y(j)) > corners(x(i), y(i))
+                ED = ((x(j) - x(i))^2) + ((y(j) - y(i))^2);
+                if ED < r(i)
+                    r(i) = ED;
+                end
+            end
+        end
+    end
+    
+    x_best = zeros(1, n_best);
+    y_best = zeros(1, n_best);    
+    [~, I] = sort(r, 'descend');
+    
+    for i = 1:n_best
+        x_best(i) = y(I(i));
+        y_best(i) = x(I(i));
+    end
+end
+
+function displayANMS(img, x_best, y_best)
+    figure
+    imshow(img)
+    hold on
+%      plot(x_best, y_best, 'Color', 'r', 'Marker','.', 'LineStyle','-')
+    plot(x_best, y_best, 'r.')
+    hold off
 end
 
 function H = est_homography(X,Y,x,y)
