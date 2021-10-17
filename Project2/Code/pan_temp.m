@@ -49,8 +49,8 @@ displayANMS(img2, Y2, X2);
 %        displayANMS(curr_img, curr_img_y_best, curr_img_x_best);
 %        displayANMS(next_img, next_img_y_best, next_img_x_best);
 
-[d1, filteredX1, filteredY1] = feature_descriptors(gray1, X1, Y1)
-[d2, filteredX2, filteredY2] = feature_descriptors(gray2, X2, Y2)
+[d1, filteredX1, filteredY1] = feature_descriptors(gray1, X1, Y1);
+[d2, filteredX2, filteredY2] = feature_descriptors(gray2, X2, Y2);
 
 
 disp("")
@@ -60,18 +60,16 @@ displayANMS(img2, filteredX2, filteredY2);
 % matching points
 match_threshold = 0.45;
 [matchedp1X, matchedp1Y, matchedp2X, matchedp2Y] = getMatchedPoints(match_threshold, ...
-    d1, d2, filteredX1, filteredY1, filteredX2, filteredY2)
+    d1, d2, filteredX1, filteredY1, filteredX2, filteredY2);
 % matched lines 
 
 hprevImage = showMatchedFeatures(img1, img2, [matchedp1X, matchedp1Y], [matchedp2X, matchedp2Y], 'montage')
+% hprevImage = showMatchedFeatures(img1, img2, [matchedp1X, matchedp1Y], [matchedp2X, matchedp2Y])
 disp("")
 
 % RANSAC
-N_max = 1000000
-RANSAC_thresh = 1.4910
-
-% N_max = 1000
-RANSAC_thresh = 10
+N_max = 300000
+RANSAC_thresh = 8
 
 [H_ls, INLIERSp1X, INLIERSp1Y, INLIERSp2X, INLIERSp2Y] = RANSAC(N_max, RANSAC_thresh, ...
     matchedp1X, matchedp1Y, matchedp2X, matchedp2Y);
@@ -92,13 +90,29 @@ function [descriptors, X, Y] = feature_descriptors(img_grayscale, x, y)
         if (((x_i-19) >= 1) &&  ((y_i-19)>=1) && ((x_i + 20) <= x_size) && ((y_i + 20) <= y_size))
             
             patch = img_grayscale(x_i-19:x_i+20, y_i-19:y_i+20);
-            sig = 0.1;
-            blurred = imgaussfilt(patch, sig);
+            
 %             imshow(patch)
 %             figure(10,10); imshow(blurred)
 
-%             resized = imresize(blurred, [8 8]);
-            resized = blurred(1:5:end, 1:5:end);
+%             avg5 = ones(5)/9;
+%             C = conv2(avg5,blurred )
+            
+%             H = fspecial('motion', 10, 45);
+                
+            % h = fspecial('gaussian',hsize,sigma) returns 
+            % a rotationally symmetric Gaussian lowpass filter of size hsize 
+            % with standard deviation sigma. Not recommended.
+            
+            hsize = 10; sigma = 4;
+%             H = fspecial('gaussian',hsize,sigma);
+%             blurred = imfilter(patch,H,'replicate'); 
+%             imshow(blurred);
+
+            blurred = imgaussfilt(patch, sigma);
+
+
+            resized = imresize(blurred, [8 8]);
+%             resized = blurred(1:5:end, 1:5:end);
             
             reshaped = double(reshape(resized, [64, 1]));
             
@@ -113,6 +127,131 @@ function [descriptors, X, Y] = feature_descriptors(img_grayscale, x, y)
     end
     disp("")
 end
+
+
+function [H_ls, INLIERSp1X, INLIERSp1Y, INLIERSp2X, INLIERSp2Y] = RANSAC(N_max, thresh, match1X, match1Y, match2X, match2Y)
+    
+    total = size(match1X, 1); inliers_count = 0; iter = 0;
+    INLIERSXY = [];
+    ssds = [];
+    
+    random_size = 4
+    while (iter < N_max && ((inliers_count/total) < 0.90))
+
+%         random_i = randi([1 total], 1, 4);
+        random_i = randperm(total, random_size);
+
+        % 1. Select four pairs of matched pixels (at random), 1<=i<=4, p_1i/p_2i from images 1/2.
+        tempX1 = match1X(random_i); tempY1 = match1Y(random_i);
+        tempX2 = match2X(random_i); tempY2 = match2Y(random_i);
+        
+        if (ismember(346,tempX1) || ismember(312,tempX1) || ismember(407,tempX1))
+            disp("")
+        end
+        
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+        % 2. Compute the homography matrix from the four feature pairs using est_homography
+        H = est_homography(tempX1,tempY1,tempX2,tempY2);
+        
+        % 3. Compute inliers where SSD(Hp_1, p_2) < threshold
+        for i=1:random_size
+
+            p2 = [tempX2(i); tempY2(i)];
+            [Hp1X, Hp1Y] = apply_homography(H, [tempX1(i)], [tempY1(i)]);
+            Hp1 = [Hp1X; Hp1Y];            
+            
+%             p2 = [tempX2(i); tempY2(i); 1];
+%             p1 = [tempX1(i); tempY1(i); 1];
+%             Hp1 = H*p1;
+            
+            X = Hp1 - p2;
+            ssd = sum(X(:).^2);
+            
+%             ssds = [ssds ssd];
+%             thresh = 10;
+            sqrtssd = sqrt(ssd);
+            
+%             A=[tempX1(i), tempY1(i)];B=[tempX2(i), tempY2(i)];
+%             euclidean = sqrt(sum((A-B).^2));
+            
+%             if (tempX1(i) == 346 || tempX1(i)==312 || tempX1(i)==407 ...
+%                             || tempX1(i)==184 || tempX1(i)==202 || tempX1(i)==394)
+% %                 sqrtssd = sqrtssd
+%                 disp("")
+%             end
+            
+%             if (euclidean < 70)
+                
+                if (ssd < thresh)
+                    
+                    if (tempX1(i) == 346 || tempX1(i)==312 || tempX1(i)==407 ...
+                            || tempX1(i)==184 || tempX1(i)==202 || tempX1(i)==394 ...
+                            || tempX1(i)==272)
+                        sqrtssd = sqrtssd
+                        disp("")
+                    end
+                    INLIERSXY = [INLIERSXY; [tempX1(i), tempY1(i), tempX2(i), tempY2(i)]];
+                    INLIERSXY = unique(INLIERSXY, 'rows', 'stable');
+                    inliers_count = size(INLIERSXY,1);
+                    
+                    percentage = (inliers_count/total);
+                    if (mod(percentage,.03) > .02)
+%                         mod(percentage,.03)
+                        percentage
+                    end
+                    fprintf("iter: %d, ssd: %f, percentage: %f\n", iter, ssd, percentage)
+                end
+
+%             end
+
+        end
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%         % 2. Compute the homography matrix from the four feature pairs using est_homography
+%         H = est_homography(tempX1,tempY1,tempX2,tempY2);
+%         
+%         % 3. Compute inliers where SSD(Hp_1, p_2) < threshold
+% 
+%         p2 = [tempX2, tempY2];
+%         [Hp1X, Hp1Y] = apply_homography(H, tempX1, tempY1);
+%         Hp1 = [Hp1X, Hp1Y];
+%         X = Hp1 - p2;
+%         ssd = sum(X(:).^2);
+%         
+%         if (ssd > thresh)
+%             if (ismember(346,tempX1) || ismember(312,tempX1) || ismember(407,tempX1) ...
+%                     || ismember(184,tempX1) || ismember(202,tempX1) || ismember(394,tempX1))
+%                 ssd
+%                 disp("")
+%             end
+%             for i=1:4
+%                 INLIERSXY = [INLIERSXY; [tempX1(i), tempY1(i), tempX2(i), tempY2(i)]];
+%                 INLIERSXY = unique(INLIERSXY, 'rows', 'stable');
+%                 inliers_count = size(INLIERSXY,1);
+%             end
+%             fprintf("iter: %d, ssd: %f, percentage: %f\n", iter, ssd, (inliers_count/total))
+%         end
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+        % 4. Repeat the last 3 steps until you reach N_max iters or 90% of inliers.
+        iter = iter + 1;
+        % 5. Keep largest set of inliers.
+    end
+
+    % 6. Recompute least-square H on all inliers.    
+    H_ls = est_homography(INLIERSXY(:,1),INLIERSXY(:,2),INLIERSXY(:,3),INLIERSXY(:,4));
+    
+    INLIERSp1X = INLIERSXY(:,1);
+    INLIERSp1Y = INLIERSXY(:,2);
+    INLIERSp2X = INLIERSXY(:,3);
+    INLIERSp2Y = INLIERSXY(:,4);
+
+    iter
+    percentage
+    
+    fprintf("end RANSAC");
+end
+
 
 function [matchedp1X, matchedp1Y, matchedp2X, matchedp2Y] = getMatchedPoints(thresh, d1, d2, p1X, p1Y, p2X, p2Y)
     matchedp1X = [];matchedp1Y = [];matchedp2X = [];matchedp2Y = [];
@@ -228,111 +367,6 @@ function [X, Y] = apply_homography(H, x, y)
     
     X = q1(1,:)';
     Y = q1(2, :)';
-end
-
-function [H_ls, INLIERSp1X, INLIERSp1Y, INLIERSp2X, INLIERSp2Y] = RANSAC(N_max, thresh, match1X, match1Y, match2X, match2Y)
-    
-    total = size(match1X, 1); inliers_count = 0; iter = 0;
-    INLIERSXY = [];
-    ssds = [];
-    
-    while (iter < N_max && ((inliers_count/total) < 0.90))
-
-%         random_i = randi([1 total], 1, 4);
-        random_i = randperm(total, 4);
-
-        % 1. Select four pairs of matched pixels (at random), 1<=i<=4, p_1i/p_2i from images 1/2.
-        tempX1 = match1X(random_i); tempY1 = match1Y(random_i);
-        tempX2 = match2X(random_i); tempY2 = match2Y(random_i);
-        
-        if (ismember(346,tempX1) || ismember(312,tempX1) || ismember(407,tempX1))
-            disp("")
-        end
-        
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-        % 2. Compute the homography matrix from the four feature pairs using est_homography
-        H = est_homography(tempX1,tempY1,tempX2,tempY2);
-        
-        % 3. Compute inliers where SSD(Hp_1, p_2) < threshold
-        for i=1:4
-
-            p2 = [tempX2(i); tempY2(i)];
-            [Hp1X, Hp1Y] = apply_homography(H, [tempX1(i)], [tempY1(i)]);
-            Hp1 = [Hp1X; Hp1Y];            
-            
-%             p2 = [tempX2(i); tempY2(i); 1];
-%             p1 = [tempX1(i); tempY1(i); 1];
-%             Hp1 = H*p1;
-            
-            X = Hp1 - p2;
-            ssd = sum(X(:).^2);
-            
-            if (tempX1(i) == 346 || tempX1(i)==312 || tempX1(i)==407 ...
-                        || tempX1(i)==184 || tempX1(i)==202)
-                disp("")
-            end
-            
-%             ssds = [ssds ssd];
-            if (ssd < thresh)
-                if (tempX1(i) == 346 || tempX1(i)==312 || tempX1(i)==407 ...
-                        || tempX1(i)==184 || tempX1(i)==202)
-                    disp("")
-                end
-                INLIERSXY = [INLIERSXY; [tempX1(i), tempY1(i), tempX2(i), tempY2(i)]];
-                INLIERSXY = unique(INLIERSXY, 'rows', 'stable');
-                inliers_count = size(INLIERSXY,1);
-                fprintf("iter: %d, ssd: %f, percentage: %f\n", iter, ssd, (inliers_count/total))
-            end
-        end
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%         % 2. Compute the homography matrix from the four feature pairs using est_homography
-%         H = est_homography(tempX1,tempY1,tempX2,tempY2);
-%         
-%         % 3. Compute inliers where SSD(Hp_1, p_2) < threshold
-% 
-%         p2 = [tempX2, tempY2];
-%         [Hp1X, Hp1Y] = apply_homography(H, tempX1, tempY1);
-%         Hp1 = [Hp1X, Hp1Y];
-%         X = Hp1 - p2;
-%         ssd = sum(X(:).^2);
-%         
-% %         if (ismember(346,tempX1) || ismember(312,tempX1) || ismember(407,tempX1))
-% %             ssd
-% %             disp("")
-% %         end
-%         
-%         if (ssd < thresh)
-%             if (ismember(346,tempX1) || ismember(312,tempX1) || ismember(407,tempX1))
-%                 ssd
-%                 disp("")
-%             end
-%             for i=1:4
-%                 INLIERSXY = [INLIERSXY; [tempX1(i), tempY1(i), tempX2(i), tempY2(i)]];
-%                 INLIERSXY = unique(INLIERSXY, 'rows', 'stable');
-%                 inliers_count = size(INLIERSXY,1);
-%             end
-%             fprintf("iter: %d, ssd: %f, percentage: %f\n", iter, ssd, (inliers_count/total))
-%         end
-%         
-%         % 4. Repeat the last 3 steps until you reach N_max iters or 90% of inliers.
-%         iter = iter + 1;
-%         % 5. Keep largest set of inliers.
-%     end
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    end
-    ssds
-    % 6. Recompute least-square H on all inliers.    
-    H_ls = est_homography(INLIERSXY(:,1),INLIERSXY(:,2),INLIERSXY(:,3),INLIERSXY(:,4))
-    
-    INLIERSp1X = INLIERSXY(:,1)
-    INLIERSp1Y = INLIERSXY(:,2)
-    INLIERSp2X = INLIERSXY(:,3)
-    INLIERSp2Y = INLIERSXY(:,4)
-
-    iter
-    
-    fprintf("end RANSAC");
 end
 
 function hImage = showMatchedFeatures(I1, I2, matchedPoints1, matchedPoints2, varargin)
