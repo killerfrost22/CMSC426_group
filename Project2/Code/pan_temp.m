@@ -69,7 +69,7 @@ disp("")
 
 % RANSAC
 N_max = 300000
-RANSAC_thresh = 8
+RANSAC_thresh = 20
 
 [H_ls, INLIERSp1X, INLIERSp1Y, INLIERSp2X, INLIERSp2Y] = RANSAC(N_max, RANSAC_thresh, ...
     matchedp1X, matchedp1Y, matchedp2X, matchedp2Y);
@@ -103,7 +103,7 @@ function [descriptors, X, Y] = feature_descriptors(img_grayscale, x, y)
             % a rotationally symmetric Gaussian lowpass filter of size hsize 
             % with standard deviation sigma. Not recommended.
             
-            hsize = 10; sigma = 4;
+            hsize = 10; sigma = 2;
 %             H = fspecial('gaussian',hsize,sigma);
 %             blurred = imfilter(patch,H,'replicate'); 
 %             imshow(blurred);
@@ -111,8 +111,8 @@ function [descriptors, X, Y] = feature_descriptors(img_grayscale, x, y)
             blurred = imgaussfilt(patch, sigma);
 
 
-            resized = imresize(blurred, [8 8]);
-%             resized = blurred(1:5:end, 1:5:end);
+%             resized = imresize(blurred, [8 8]);
+            resized = blurred(1:5:end, 1:5:end);
             
             reshaped = double(reshape(resized, [64, 1]));
             
