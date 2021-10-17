@@ -36,13 +36,13 @@ displayANMS(img2, X2, Y2);
 %        displayANMS(curr_img, curr_img_y_best, curr_img_x_best);
 %        displayANMS(next_img, next_img_y_best, next_img_x_best);
 
-[d1, filteredX1, filteredY1] = feature_descriptors(curr_img_grayscale, curr_img_x_best, curr_img_y_best)
-[d2, filteredX2, filteredY2] = feature_descriptors(next_img_grayscale, next_img_x_best, next_img_y_best)
+[d1, filteredX1, filteredY1] = feature_descriptors(gray1, X1, Y1)
+[d2, filteredX2, filteredY2] = feature_descriptors(gray2, X2, Y2)
 
 
 disp("")
-displayANMS(curr_img, filteredX1, filteredY1);
-displayANMS(next_img, filteredX2, filteredY2);
+displayANMS(img1, filteredX1, filteredY1);
+displayANMS(img2, filteredX2, filteredY2);
 
 % matching points
 match_threshold = 0.5;
@@ -50,7 +50,7 @@ match_threshold = 0.5;
     d1, d2, filteredX1, filteredY1, filteredX2, filteredY2)
 % matched lines 
 
-hprevImage = showMatchedFeatures(curr_img, next_img, [matchedp1X, matchedp1Y], [matchedp2X, matchedp2Y], 'montage')
+hprevImage = showMatchedFeatures(img1, img2, [matchedp1X, matchedp1Y], [matchedp2X, matchedp2Y], 'montage')
 disp("")
 
 %     % RANSAC
@@ -159,8 +159,8 @@ function [x_best, y_best] = ANMS(n_best, gray_img, corners, maxima)
     [~, I] = sort(r, 'descend');
     
     for i = 1:n_best
-        x_best(i) = y(I(i));
-        y_best(i) = x(I(i));
+        x_best(i) = x(I(i));
+        y_best(i) = y(I(i));
     end
 end
 
