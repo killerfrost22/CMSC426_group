@@ -24,7 +24,7 @@ tforms(num_images) = projective2d(eye(3));
 imageSize = zeros(num_images,2);
 
 % Iterate over remaining image pairs
-for n = 3:num_images   
+for n = 2:num_images   
     curr_path = directory(n-1);
     folderchar = curr_path.folder;
     folder = convertCharsToStrings(folderchar) + "\";
@@ -66,16 +66,15 @@ for n = 3:num_images
     displayANMS(img2, filteredX2, filteredY2);
     
     match_threshold = 0.10;
+    N_max = 35
+    RANSAC_thresh = 0.06
+    
     [matchedp1X, matchedp1Y, matchedp2X, matchedp2Y] = getMatchedPoints(match_threshold, ...
     d1, d2, filteredX1, filteredY1, filteredX2, filteredY2);
     
     figure
     hprevImage = showMatchedFeatures(img1, img2, [matchedp1X, matchedp1Y], [matchedp2X, matchedp2Y], 'montage')
     disp("")
-    
-    % RANSAC
-    N_max = 25
-    RANSAC_thresh = 0.05
     
     [INLIERSp1X, INLIERSp1Y, INLIERSp2X, INLIERSp2Y] = RANSAC(N_max, RANSAC_thresh, ...
         matchedp1X, matchedp1Y, matchedp2X, matchedp2Y);
