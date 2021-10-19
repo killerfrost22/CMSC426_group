@@ -58,7 +58,7 @@ displayANMS(img1, filteredX1, filteredY1);
 displayANMS(img2, filteredX2, filteredY2);
 
 % matching points
-match_threshold = 0.45;
+match_threshold = 0.25;
 [matchedp1X, matchedp1Y, matchedp2X, matchedp2Y] = getMatchedPoints(match_threshold, ...
     d1, d2, filteredX1, filteredY1, filteredX2, filteredY2);
 % matched lines 
@@ -68,8 +68,8 @@ hprevImage = showMatchedFeatures(img1, img2, [matchedp1X, matchedp1Y], [matchedp
 disp("")
 
 % RANSAC
-N_max = 100
-RANSAC_thresh = 5
+N_max = 1000
+RANSAC_thresh = 1
 
 [H_ls, INLIERSp1X, INLIERSp1Y, INLIERSp2X, INLIERSp2Y] = RANSAC(N_max, RANSAC_thresh, ...
     matchedp1X, matchedp1Y, matchedp2X, matchedp2Y);
@@ -121,7 +121,7 @@ avgXLim = mean(xlim, 2); [~,idx] = sort(avgXLim);
 centerIdx = floor((numel(tforms)+1)/2);
 centerImageIdx = idx(centerIdx);
 
-centerImageIdx = 1;
+% centerImageIdx = 2;
 
 Tinv = invert(tforms(centerImageIdx));
 for i = 1:numel(tforms)    
@@ -253,7 +253,7 @@ function [H_ls, INLIERSp1X, INLIERSp1Y, INLIERSp2X, INLIERSp2Y] = RANSAC(N_max, 
     ssds = [];
     
     random_size = 4
-    while (iter < N_max && ((inliers_count/total) < 0.50))
+    while (iter < N_max && ((inliers_count/total) < 0.20))
 
 %         random_i = randi([1 total], 1, 4);
         random_i = randperm(total, random_size);
