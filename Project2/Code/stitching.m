@@ -86,33 +86,74 @@ disp("")
 
 % transforms the numeric, logical, or categorical image A according to the geometric transformation tform. The function returns the transformed image in B.
 
-H1 = est_homography(INLIERSp2X,INLIERSp2Y, INLIERSp1X,INLIERSp1Y);
+% est_homography(destinationX, destinationY, sourceX, sourceY);
+H12 = est_homography(INLIERSp2X,INLIERSp2Y, INLIERSp1X,INLIERSp1Y);
+H21 = est_homography(INLIERSp1X,INLIERSp1Y, INLIERSp2X,INLIERSp2Y);
 
-H2 = est_homography(INLIERSp1X,INLIERSp1Y, INLIERSp2X,INLIERSp2Y);
-
-warp1 = imwarp(img1, projective2d(H1'));
-size(warp1)
-
-warp2 = imwarp(img2, projective2d(H1'));
-size(warp2)
-
-warp3 = imwarp(img1, projective2d(H2'));
-size(warp3)
-
-warp4 = imwarp(img2, projective2d(H2'));
-size(warp4)
-
-% tform = affine2d([1 0 0; .5 1 0; 0 0 1])
-% J = imwarp(img1,tform);
-% figure
-% imshow(J)
+% warp1 = imwarp(img1, projective2d(H12'));
+% size(warp1)
+% warp2 = imwarp(img2, projective2d(H12'));
+% size(warp2)
+% warp3 = imwarp(img1, projective2d(H21'));
+% size(warp3)
+% warp4 = imwarp(img2, projective2d(H21'));
+% size(warp4)
 
 % figure
-imshow(warp1)
-imshow(warp2)
-imshow(warp3)
-imshow(warp4)
+% imshow(warp1)
+% imshow(warp2)
+% imshow(warp3)
+% imshow(warp4)
 
+warp12 = imwarp(img1, projective2d(H12'));
+imshow(warp12);
+
+warp12Size = size(warp12)
+img2Size = size(img2)
+
+warp12X = warp12Size(1);
+warp12Y = warp12Size(2);
+img2X = img2Size(1);
+img2Y = img2Size(2);
+
+maxX = max(warp12X, img2X)
+maxY = max(warp12Y, img2Y)
+
+panorama = uint8(zeros([maxX maxY 3]));
+size(panorama)
+
+imshow(panorama)
+
+% for i = 1:maxX
+%     for j = 1:maxY
+%         if (1 <= i && i <= warp12X && i <= img2X ...
+%                 && 1 <= j && j <= warp12Y && j <= img2Y )
+%             panorama(i,j,:) = (warp12(i,j,:)+img2(i,j,:)) ./ 2;
+%         elseif (1 <= i && i <= warp12X && 1 <= j && j <= warp12Y)
+%             panorama(i,j,:) = (warp12(i,j,:));
+%         elseif (1 <= i && i <= img2X && 1 <= j && j <= img2Y)
+%             panorama(i,j,:) = (img2(i,j,:));
+%         end
+%     end
+% end
+
+for i = 1:warp12X
+    for j = 1:warp12Y
+        color = warp12(i,j,:);
+        panorama(i,j,:) = color;
+    end
+end
+imshow(panorama)
+
+panorama = uint8(zeros([maxX maxY 3]));
+for i = 1:img2X
+    for j = 1:img2Y
+        color = img2(i,j,:);
+        panorama(i,j,:) = color;
+    end
+end
+
+imshow(panorama)
 disp("")
 
 function [descriptors, X, Y] = feature_descriptors(img_grayscale, x, y)
