@@ -7,7 +7,7 @@
 % the "Current Folder" chosen on left hand side must be located at root
 % location of directory
 
-location = ".\Project2\Images\train_images\Set2\";
+location = ".\Project2\Images\train_images\Set1\";
 % location = "/Users/gyq888/Desktop/Project2/Images/Set1/";
 
 directory = dir(location + '*.jpg')
@@ -54,7 +54,7 @@ for n = 2:num_images
     max1 = imregionalmax(corners1);
     max2 = imregionalmax(corners2);
     
-    n_best = 500; 
+    n_best = 250; 
     [X1, Y1] = ANMS(n_best, gray1, corners1, max1);
     [X2, Y2] = ANMS(n_best, gray2, corners2, max2);
 %     displayANMS(img1, Y1, X1);
@@ -65,7 +65,7 @@ for n = 2:num_images
     displayANMS(img1, filteredX1, filteredY1);
     displayANMS(img2, filteredX2, filteredY2);
     
-    match_threshold = 0.35;
+    match_threshold = 0.25;
     N_max = 35
     RANSAC_thresh = 0.0001
     
@@ -192,6 +192,9 @@ function [descriptors, X, Y] = feature_descriptors(img_grayscale, x, y)
     [~, n_best] = size(x);
     [ x_size, y_size] = size(img_grayscale);
     descriptors = []; X = []; Y = [];
+    
+    
+    
     for i = 1:n_best
         % Patch is of size 41x41, so point is the actual center
         x_i = x(i);
@@ -212,6 +215,8 @@ function [descriptors, X, Y] = feature_descriptors(img_grayscale, x, y)
             % h = fspecial('gaussian',hsize,sigma) returns 
             % a rotationally symmetric Gaussian lowpass filter of size hsize 
             % with standard deviation sigma. Not recommended.
+            
+            
             
             hsize = 10; sigma = 0.001;
 %             H = fspecial('gaussian',hsize,sigma);
@@ -246,7 +251,7 @@ function [INLIERSp1X, INLIERSp1Y, INLIERSp2X, INLIERSp2Y] = RANSAC(N_max, thresh
     
     random_size = 4
     percentage = 0;
-    while (iter < N_max && (percentage < 0.50))
+    while (iter < N_max && (percentage < 0.50) && inliers_count < 10)
 
         random_i = randperm(total, random_size);
 
@@ -299,6 +304,10 @@ function [INLIERSp1X, INLIERSp1Y, INLIERSp2X, INLIERSp2Y] = RANSAC(N_max, thresh
                 INLIERSXY = [INLIERSXY; [tempX1(i), tempY1(i), tempX2(i), tempY2(i)]];
                 INLIERSXY = unique(INLIERSXY, 'rows', 'stable');
                 inliers_count = size(INLIERSXY,1);
+                
+                if (inliers_count >= 10)
+                    break;
+                end
                 
             end
 
@@ -390,6 +399,10 @@ function [MATCHEDXY, filtered, matchedp1X, matchedp1Y, matchedp2X, matchedp2Y] =
         end
     end
     
+    showMatchedFeatures(img1, img2, [matchedp1X, matchedp1Y], [matchedp2X, matchedp2Y], 'montage')
+    
+    mindist = sortedDist
+    disp("")
 
     
     MATCHEDXY = [matchedp1X, matchedp1Y, matchedp2X, matchedp2Y];
