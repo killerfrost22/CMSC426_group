@@ -25,9 +25,9 @@
 \jname{Perspectives on Politics}
 %\artid{20}
 \jyear{2021}
-\jvol{4}
+\jvol{10}
 %\jissue{1}
-\jdoi{10.1017/pps.2021.xx}
+
 %\raggedbottom
 
 %\usepackage{showframe}
@@ -37,10 +37,10 @@
 \begin{Frontmatter}
 
 \title[Panorama Report]{CMSC426PJ2 Report}
-
+\author{Yingqiao Gou \texttt{ygou@terpmail.umd.edu}}
 \author{Yizhan Ao \texttt{josephao@umd.edu}}
 \author{Daniel Song \texttt{dsong12@umd.edu}}
-\author{Yingqiao Gou \texttt{ygou@terpmail.umd.edu}}
+
 
 
 \abstract{Abstracts should be 250 words. It must be able to stand alone and so cannot contain citations to the paper's references, equations, etc. An abstract must consist of a single paragraph and be concise. Because of online formatting, abstracts must appear as plain as possible.}
@@ -48,10 +48,10 @@
 \end{Frontmatter}
 
 
-\dropcap{M}
-modi minima sunt esse temporibus sint culpa, recusandae aliquam numquam
-totam ratione voluptas quod exercitationem fuga. Possimus quis earum veniam
-quasi aliquam eligendi.
+\dropcap{T}he general idea of our implementation is to follow the pipeline that was given to us. We need to calculate the second image to the last image, with the geometric transformation once the feature matching is successful with the current picture. By stitching the picture we can walk through every transformation, and the final presentation will be one single panorama picture. 
+
+Seting the lower limit as 35 we have the matched features allowing to match. Our opinion towards the lower is to be a random image which will not fit the panorama when this happen an error will occur. The decision worked in our customTestSet 1. Where the image was
+.
 
 \section[]{ANMS (Adaptive Non-Maximal Suppression)}
 
@@ -90,77 +90,114 @@ The goal of ANMS is to pick out the stronger corner points.
 % \label{fig2}}
 % \end{figure}
 \begin{center}
-\includegraphics[width=275]{outputimages/ANMS/anms1.jpg}
-\includegraphics[width=275]{outputimages/ANMS/anms2.png}
-\includegraphics[width=275]{outputimages/ANMS/ANMS4.png}
+\includegraphics[width=275]{outputimages/ANMS/anms1.jpg}\\
+\includegraphics[width=275]{outputimages/ANMS/anms2.png}\\
+\includegraphics[width=275]{outputimages/ANMS/ANMS4.png}\\
 \includegraphics[width=275]{outputimages/ANMS/ANMS5.png}
 \end{center}
 
 \section[]{Feature Descriptor}
+During the ANMS stage, we discovered feature points. Each feature point must be described by a feature vector, which is equivalent to storing the information at each feature point into a vector. Next, we'll go through one of the most basic feature descriptors.
 
-\subsection{This is a B head this is a B head this is a B head this is a B head this is a B~head}
-\subsubsection{This is a C head this is a C head this is a C head this is a C head}
+Take a patch of size 4040 and center it on the key point. At every N-Best point, getFeatureDescriptors() would take a patch around the point ofthe form: I(row-19:row+20, column-19:column+20), blur, reshape and standardize as described.The value is returned as a 64 x N-Best matrix. Apply the gaussian blur to the patch after that. We subsample the blurred output to 8*8 and then shrink the size to 64*1.
 
+\subsection{Shortcoming}
+\begin{itemize}
+    \item Because the output provides no visible cues, the function is reliant on the accuracy of earlier portions of the project.
+    \item The matching discovered enough pairs between the floors (cases of test images - TestSet4) that the whole panorama was influenced in the case of test images - TestSet1.
+    \item Before matching, a more robust algorithm may seek the subject first.
+\end{itemize}
 
 \section{Feature Matching}
 
-List in \LaTeX{} can be of three types: enumerate, itemize and description.
-In each environments, new entry is added via the \verb+\item+ command.
-Enumerate creates numbered lists, itemize creates bulleted lists and
-description creates description lists.
-\begin{enumerate}[1.]
-\item First item in the number list.
-\item Second item in the number list.
-\item Third item in the number list.
-\end{enumerate}
-List in \LaTeX{} can be of three types: enumerate, itemize and description.
-In each environments, new entry is added via the \verb+\item+ command.
+
 \begin{itemize}
-\item First item in the bullet list.
-\item Second item in the bullet list.
-\item Third item in the bullet list.
+\item
+\item 
+\item 
 \end{itemize}
 
 
 \section{RANSAC to estimate Robust Homography}
-
-Equations in \LaTeX{} can either be inline or on-a-line by itself. For
-inline equations use the \verb+$...$+ commands. Eg: The equation
-$H\psi = E \psi$ is written via the command $H \psi = E \psi$.
-
-
-
-\section{Cylinirical Projection}
-
-\begin{figure}[t]%
-\FIG{\includegraphics[width=.75\columnwidth]{Fig}}
-{\caption{This is an example of caption this is an example of caption  this is an example of caption this is an example of caption}
-\label{fig1}}
-\end{figure}
+\begin{itemize}
+\item
+\item 
+\item 
+\end{itemize}
 
 \section{Blending Images}
+To blend images and form a panorama, we need to estimate transformations between images.
+Those transformation matrices (H) are estimated using est-(homography()), which takes
+coordinates of inliers from RANSAC. We then create a projective2d datatype (tforms) based on each H matrix, then we compute the specific transformation matrix of each image (tforms.T) by applying \\
+\begin{equation}
+    T(n) = T(n) * T(n-1) * … * T(1)
+\end{equation}
+The reason for us to do this is that we need to apply several projective2d functions for blending.
 
 
+\begin{figure}[t]%
+\FIG{\includegraphics[width=240]{outputimages/blending/p1.jpg}}
+{\caption{Figure 1. Example of tforms, projective2d structure}
+}
+\end{figure}
 
-\begin{table}[t]
-\tabcolsep=0pt%
-\TBL{\caption{Tables which are too long to fit,
-should be written using the ``table*'' environment\label{tab2}}}
-{\begin{fntable}
-\begin{tabular*}{\textwidth}{@{\extracolsep{\fill}}lcccccc@{}}\toprule%
- & \multicolumn{3}{@{}c@{}}{\TCH{Element 1}}& \multicolumn{3}{@{}c@{}}{\TCH{Element 2\smash{\footnotemark[1]}}}
- \\\cmidrule{2-4}\cmidrule{5-7}%
-\TCH{Project} & \TCH{Energy} & \TCH{$\boldsymbol{\sigma_{\text{calc}}}$} & \TCH{$\boldsymbol{\sigma_{\text{expt}}}$} &
-\TCH{Energy} & \TCH{$\boldsymbol{\sigma_{\text{calc}}}$} & \TCH{$\boldsymbol{\sigma_{\text{expt}}}$} \\\midrule
-\TCH{Stage 3}&990 A &168 &47$\pm$12 &78 A &66 &39$\pm$10\\
-{\TCH{Stage 4}}&500 A &961 &22$\pm$10 &90 A &68 &92$\pm$40\\
-\botrule
-\end{tabular*}%
-\footnotetext[]{{Note:} This is an example of table footnote this is an example of table footnote this is an example of table footnote this is an example of~table footnote this is an example of table footnote}
-\footnotetext[1]{This is an example of table footnote}%
-\end{fntable}}
-\vspace*{7pt}
-\end{table}
+\begin{figure}[t]%
+\FIG{\includegraphics[width=240]{outputimages/blending/p2.jpg}}
+{\caption{Figure 2. Reason to apply outputLimits() for transformation}
+}
+\end{figure}
+% \includegraphics[width=240]{outputimages/blending/p2.jpg}
+
+After we get specific transform matrices, we then calculate coordinate limits for each transform.The reason for us to do this is that images don’t remain in their original shape when they transform. As a result, we need to estimate the limit to make sure we have enough pixel space to hold them after transformations. We uses outputLimits() function from projective2d to achieve this.
+
+
+To improve the result, we added a step where we recalculate to find a specific picture as the better centerpiece for the panorama. Initially, we estimate all transformations based on the first picture (using the first picture as the center). This action sometimes will make the final panorama looks incorrect if the first picture isn’t a reasonable center (consider if we use an edge picture as the center).
+\section{Cylinirical Projection}
+
+
+\begin{figure}[t]%
+\FIG{\includegraphics[width=240]{outputimages/blending/p3.jpg}}
+{\caption{Figure 3. code portion: outputLimits()}
+}
+\end{figure}
+
+
+\begin{figure}[t]%
+\FIG{\includegraphics[width=240]{outputimages/blending/p4.jpg}}
+{\caption{Figure 4. Example of distorted panorama based on the wrong center}
+}
+\end{figure}
+
+
+After we find the new center, we recalculate each picture’s transformation matrix based on it. To do such, we calculate the inverted matrix of the current center’s transformation matrix, and then update other images’ transformation matrices by tforms(i).T = tforms(i).T * Tinv.T. Base on new transformation matrices, we recalculate the limit for each image during transformation. Then, wefind the overall max and min coordinates for all images limit to make sure we have enough space to hold them all for the panorama. Base on the overall max and min, we then initialize the panorama (filled with black pixels).
+
+\begin{figure}[t]%
+\FIG{\includegraphics[width=240]{outputimages/blending/p5.jpg}}
+{\caption{Figure 5. code portion: Update transformation matrices based on new center Figure}
+}
+\end{figure}
+Finally, we loop through each image, wrap it based on its transformation matrix using imwarp()function, generate a binary mask, then overlay the wrapped image onto the panorama using the step() function. After this stage, we shall have our panorama finished.
+
+
+% \begin{table}[t]
+% \tabcolsep=0pt%
+% \TBL{\caption{Tables which are too long to fit,
+% should be written using the ``table*'' environment\label{tab2}}}
+% {\begin{fntable}
+% \begin{tabular*}{\textwidth}{@{\extracolsep{\fill}}lcccccc@{}}\toprule%
+%  & \multicolumn{3}{@{}c@{}}{\TCH{Element 1}}& \multicolumn{3}{@{}c@{}}{\TCH{Element 2\smash{\footnotemark[1]}}}
+%  \\\cmidrule{2-4}\cmidrule{5-7}%
+% \TCH{Project} & \TCH{Energy} & \TCH{$\boldsymbol{\sigma_{\text{calc}}}$} & \TCH{$\boldsymbol{\sigma_{\text{expt}}}$} &
+% \TCH{Energy} & \TCH{$\boldsymbol{\sigma_{\text{calc}}}$} & \TCH{$\boldsymbol{\sigma_{\text{expt}}}$} \\\midrule
+% \TCH{Stage 3}&990 A &168 &47$\pm$12 &78 A &66 &39$\pm$10\\
+% {\TCH{Stage 4}}&500 A &961 &22$\pm$10 &90 A &68 &92$\pm$40\\
+% \botrule
+% \end{tabular*}%
+% \footnotetext[]{{Note:} This is an example of table footnote this is an example of table footnote this is an example of table footnote this is an example of~table footnote this is an example of table footnote}
+% \footnotetext[1]{This is an example of table footnote}%
+% \end{fntable}}
+% \vspace*{7pt}
+% \end{table}
 
 
 
