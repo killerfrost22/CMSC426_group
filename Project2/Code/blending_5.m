@@ -69,7 +69,7 @@ for n = 2:num_images
     N_max = 35
     RANSAC_thresh = 0.0001
     
-    [matchedp1X, matchedp1Y, matchedp2X, matchedp2Y] = getMatchedPoints(match_threshold, ...
+    [MATCHEDXY, filtered, matchedp1X, matchedp1Y, matchedp2X, matchedp2Y] = getMatchedPoints(img1, img2, match_threshold, ...
     d1, d2, filteredX1, filteredY1, filteredX2, filteredY2);
     
     figure
@@ -213,7 +213,7 @@ function [descriptors, X, Y] = feature_descriptors(img_grayscale, x, y)
             % a rotationally symmetric Gaussian lowpass filter of size hsize 
             % with standard deviation sigma. Not recommended.
             
-            hsize = 10; sigma = 0.1;
+            hsize = 10; sigma = 0.001;
 %             H = fspecial('gaussian',hsize,sigma);
 %             blurred = imfilter(patch,H,'replicate'); 
 %             imshow(blurred);
@@ -254,9 +254,9 @@ function [INLIERSp1X, INLIERSp1Y, INLIERSp2X, INLIERSp2Y] = RANSAC(N_max, thresh
         tempX1 = match1X(random_i); tempY1 = match1Y(random_i);
         tempX2 = match2X(random_i); tempY2 = match2Y(random_i);
         
-        if (ismember(346,tempX1) || ismember(312,tempX1) || ismember(407,tempX1))
-            disp("")
-        end
+%         if (ismember(346,tempX1) || ismember(312,tempX1) || ismember(407,tempX1))
+%             disp("")
+%         end
         
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         % 2. Compute the homography matrix from the four feature pairs using est_homography
@@ -273,14 +273,28 @@ function [INLIERSp1X, INLIERSp1Y, INLIERSp2X, INLIERSp2Y] = RANSAC(N_max, thresh
             
             X = Hp2 - p1;
             ssd = sum(X(:).^2);
+            
+            if (tempX1(i) == 346 || tempX1(i)==312 || tempX1(i)==407 ...
+                || tempX1(i)==184 || tempX1(i)==202 || tempX1(i)==394 ...
+                || tempX1(i)==272 || tempX2(i)==777 || tempX1(i)==777 ...
+                || tempY1(i)==777 || tempY2(i)==777 ...
+                || tempX1(i)==168 || tempX2(i)==168 ...
+                || tempX1(i)==190 || tempX2(i)==190)
+                disp("wtf")
+                disp("")
+            end
 
             if (ssd < thresh)
                 
-%                 if (tempX1(i) == 346 || tempX1(i)==312 || tempX1(i)==407 ...
-%                         || tempX1(i)==184 || tempX1(i)==202 || tempX1(i)==394 ...
-%                         || tempX1(i)==272)
-%                     disp("")
-%                 end
+                if (tempX1(i) == 346 || tempX1(i)==312 || tempX1(i)==407 ...
+                || tempX1(i)==184 || tempX1(i)==202 || tempX1(i)==394 ...
+                || tempX1(i)==272 || tempX2(i)==777 || tempX1(i)==777 ...
+                || tempY1(i)==777 || tempY2(i)==777 ...
+                || tempX1(i)==168 || tempX2(i)==168 ...
+                || tempX1(i)==190 || tempX2(i)==190)
+                    disp("wtf")
+                    disp("")
+                end
 
                 INLIERSXY = [INLIERSXY; [tempX1(i), tempY1(i), tempX2(i), tempY2(i)]];
                 INLIERSXY = unique(INLIERSXY, 'rows', 'stable');
@@ -304,11 +318,39 @@ function [INLIERSp1X, INLIERSp1Y, INLIERSp2X, INLIERSp2Y] = RANSAC(N_max, thresh
 
     % 6. Recompute least-square H on all inliers.    
 %     H_ls = est_homography(INLIERSXY(:,3),INLIERSXY(:,4), INLIERSXY(:,1),INLIERSXY(:,2));
-    
-    INLIERSp1X = INLIERSXY(:,1);
-    INLIERSp1Y = INLIERSXY(:,2);
-    INLIERSp2X = INLIERSXY(:,3);
-    INLIERSp2Y = INLIERSXY(:,4);
+
+%     filteredInliers = [];
+%     for i=1:size(INLIERSXY, 1)
+%         for j=1:size(INLIERSXY, 1)
+%             
+%             if (i == j)
+%                 continue;
+%             end
+%             
+%             DUPLICATES_PRESENT = false;
+%             if ((INLIERSXY(i,1) ==  INLIERSXY(j,1) && INLIERSXY(i,2) == INLIERSXY(j,2)) ...
+%                     || (INLIERSXY(i,3) ==  INLIERSXY(j,3) && INLIERSXY(i,4) == INLIERSXY(j,4)))
+%                 DUPLICATES_PRESENT = true;
+%                 break;
+%             end
+%         end
+%         if not(DUPLICATES_PRESENT)
+%             rowToAdd = INLIERSXY(i,:);
+%             filteredInliers = [filteredInliers; rowToAdd];
+%         end
+%     end
+%     
+%     if (size(filteredInliers,1) > 0)
+%         INLIERSp1X = filteredInliers(:,1);
+%         INLIERSp1Y = filteredInliers(:,2);
+%         INLIERSp2X = filteredInliers(:,3);
+%         INLIERSp2Y = filteredInliers(:,4);
+%     else
+        INLIERSp1X = INLIERSXY(:,1);
+        INLIERSp1Y = INLIERSXY(:,2);
+        INLIERSp2X = INLIERSXY(:,3);
+        INLIERSp2Y = INLIERSXY(:,4);    
+%     end
 
     iter
     percentage
@@ -317,9 +359,11 @@ function [INLIERSp1X, INLIERSp1Y, INLIERSp2X, INLIERSp2Y] = RANSAC(N_max, thresh
 end
 
 
-function [matchedp1X, matchedp1Y, matchedp2X, matchedp2Y] = getMatchedPoints(thresh, d1, d2, p1X, p1Y, p2X, p2Y)
+function [MATCHEDXY, filtered, matchedp1X, matchedp1Y, matchedp2X, matchedp2Y] = getMatchedPoints(img1, img2, thresh, d1, d2, p1X, p1Y, p2X, p2Y)
     matchedp1X = [];matchedp1Y = [];matchedp2X = [];matchedp2Y = [];
     d1size = length(d1(1,:));d2size = length(d2(2,:));
+    
+    ratios = [];
 
     for i = 1:d1size
         sumSquare = zeros(1,d2size);
@@ -328,14 +372,60 @@ function [matchedp1X, matchedp1Y, matchedp2X, matchedp2Y] = getMatchedPoints(thr
         end
         [sortedDist, I] = sort(sumSquare);
         ratio = sortedDist(1)/sortedDist(2);
-        if (ratio < thresh)
+        
+        if (0.05 < ratio && ratio < thresh)
+            
+            ratios = [ratios; ratio];
+            
             matchedp1X = [matchedp1X; p1X(i)];
+            
+            if (ismember(190, matchedp1X))
+                disp("")
+            end
+            
             matchedp1Y = [matchedp1Y; p1Y(i)];
 
             matchedp2X = [matchedp2X; p2X(I(1))];
             matchedp2Y = [matchedp2Y; p2Y(I(1))];
         end
     end
+    
+
+    
+    MATCHEDXY = [matchedp1X, matchedp1Y, matchedp2X, matchedp2Y];
+    filtered = [];
+    for i=1:size(MATCHEDXY, 1)
+        for j=1:size(MATCHEDXY, 1)
+            
+            if (i == j)
+                continue;
+            end
+            
+            DUPLICATES_PRESENT = false;
+            if ((MATCHEDXY(i,1) ==  MATCHEDXY(j,1) && MATCHEDXY(i,2) == MATCHEDXY(j,2)) ...
+                    || (MATCHEDXY(i,3) ==  MATCHEDXY(j,3) && MATCHEDXY(i,4) == MATCHEDXY(j,4)))
+                DUPLICATES_PRESENT = true;
+                break;
+            end
+        end
+        if not(DUPLICATES_PRESENT)
+            rowToAdd = MATCHEDXY(i,:);
+            filtered = [filtered; rowToAdd];
+        end
+    end
+    
+    if (size(filtered,1) > 0)
+        matchedp1X = filtered(:,1);
+        matchedp1Y = filtered(:,2);
+        matchedp2X = filtered(:,3);
+        matchedp2Y = filtered(:,4);
+    else
+        matchedp1X = MATCHEDXY(:,1);
+        matchedp1Y = MATCHEDXY(:,2);
+        matchedp2X = MATCHEDXY(:,3);
+        matchedp2Y = MATCHEDXY(:,4);    
+    end
+    
 end
 
 function [x_best, y_best] = ANMS(n_best, gray_img, corners, maxima)
@@ -737,7 +827,4 @@ else
     end
 end
 end
-
-
-
 
