@@ -7,7 +7,7 @@
 % the "Current Folder" chosen on left hand side must be located at root
 % location of directory
 
-location = ".\Project2\Images\train_images\Set1\";
+location = ".\Project2\Images\train_images\Set2\";
 % location = "/Users/gyq888/Desktop/Project2/Images/Set1/";
 
 directory = dir(location + '*.jpg')
@@ -41,9 +41,9 @@ for n = 2:num_images
     path = folder + file
     img2 = imread(path);
     
-    imshow(img1)
-    figure
-    imshow(img2)
+%     imshow(img1)
+%     figure
+%     imshow(img2)
     
     gray1 = rgb2gray(img1);
     gray2 = rgb2gray(img2);
@@ -54,20 +54,20 @@ for n = 2:num_images
     max1 = imregionalmax(corners1);
     max2 = imregionalmax(corners2);
     
-    n_best = 500; 
-    [X1, Y1] = ANMS(n_best, gray1, corners1, max1)
-    [X2, Y2] = ANMS(n_best, gray2, corners2, max2)
-    displayANMS(img1, Y1, X1);
-    displayANMS(img2, Y2, X2);
+    n_best = 200; 
+    [X1, Y1] = ANMS(n_best, gray1, corners1, max1);
+    [X2, Y2] = ANMS(n_best, gray2, corners2, max2);
+%     displayANMS(img1, Y1, X1);
+%     displayANMS(img2, Y2, X2);
     
     [d1, filteredX1, filteredY1] = feature_descriptors(gray1, X1, Y1);
     [d2, filteredX2, filteredY2] = feature_descriptors(gray2, X2, Y2);
     displayANMS(img1, filteredX1, filteredY1);
     displayANMS(img2, filteredX2, filteredY2);
     
-    match_threshold = 0.10;
-    N_max = 35
-    RANSAC_thresh = 0.06
+    match_threshold = 0.40;
+    N_max = 25
+    RANSAC_thresh = 0.000010
     
     [matchedp1X, matchedp1Y, matchedp2X, matchedp2Y] = getMatchedPoints(match_threshold, ...
     d1, d2, filteredX1, filteredY1, filteredX2, filteredY2);
@@ -116,10 +116,10 @@ centerImageIdx = idx(centerIdx);
 
 % centerImageIdx = 1;
 
-% Tinv = invert(tforms(centerImageIdx));
-% for i = 1:numel(tforms)    
-%     tforms(i).T = tforms(i).T * Tinv.T;
-% end
+Tinv = invert(tforms(centerImageIdx));
+for i = 1:numel(tforms)    
+    tforms(i).T = tforms(i).T * Tinv.T;
+end
 
 for i = 1:numel(tforms)           
     [xlim(i,:), ylim(i,:)] = outputLimits(tforms(i), ...
@@ -213,7 +213,7 @@ function [descriptors, X, Y] = feature_descriptors(img_grayscale, x, y)
             % a rotationally symmetric Gaussian lowpass filter of size hsize 
             % with standard deviation sigma. Not recommended.
             
-            hsize = 10; sigma = 2;
+            hsize = 10; sigma = 1;
 %             H = fspecial('gaussian',hsize,sigma);
 %             blurred = imfilter(patch,H,'replicate'); 
 %             imshow(blurred);
@@ -221,8 +221,8 @@ function [descriptors, X, Y] = feature_descriptors(img_grayscale, x, y)
             blurred = imgaussfilt(patch, sigma);
 
 
-%             resized = imresize(blurred, [8 8]);
-            resized = blurred(1:5:end, 1:5:end);
+            resized = imresize(blurred, [8 8]);
+%             resized = blurred(1:5:end, 1:5:end);
             
             reshaped = double(reshape(resized, [64, 1]));
             
@@ -245,8 +245,9 @@ function [INLIERSp1X, INLIERSp1Y, INLIERSp2X, INLIERSp2Y] = RANSAC(N_max, thresh
     INLIERSXY = [];
     ssds = [];
     
-    random_size = 4
-    while (iter < N_max && ((inliers_count/total) < 0.20))
+    random_size = 4;
+    percentage = 0;
+    while (iter < N_max && (percentage < 0.90))
 
 %         random_i = randi([1 total], 1, 4);
         random_i = randperm(total, random_size);
@@ -269,51 +270,27 @@ function [INLIERSp1X, INLIERSp1Y, INLIERSp2X, INLIERSp2Y] = RANSAC(N_max, thresh
             p2 = [tempX2(i); tempY2(i)];
             [Hp1X, Hp1Y] = apply_homography(H, [tempX1(i)], [tempY1(i)]);
             Hp1 = [Hp1X; Hp1Y];            
-            
-%             p2 = [tempX2(i); tempY2(i); 1];
-%             p1 = [tempX1(i); tempY1(i); 1];
-%             Hp1 = H*p1;
-            
             X = Hp1 - p2;
             ssd = sum(X(:).^2);
-            
-%             ssds = [ssds ssd];
-%             thresh = 10;
-            sqrtssd = sqrt(ssd);
-            
-%             A=[tempX1(i), tempY1(i)];B=[tempX2(i), tempY2(i)];
-%             euclidean = sqrt(sum((A-B).^2));
-            
-%             if (tempX1(i) == 346 || tempX1(i)==312 || tempX1(i)==407 ...
-%                             || tempX1(i)==184 || tempX1(i)==202 || tempX1(i)==394)
-% %                 sqrtssd = sqrtssd
-%                 disp("")
-%             end
-            
-%             if (euclidean < 70)
+
+            if (ssd < thresh)
                 
-                if (ssd < thresh)
-                    
-                    if (tempX1(i) == 346 || tempX1(i)==312 || tempX1(i)==407 ...
-                            || tempX1(i)==184 || tempX1(i)==202 || tempX1(i)==394 ...
-                            || tempX1(i)==272)
-                        sqrtssd = sqrtssd
-                        disp("")
-                    end
-                    INLIERSXY = [INLIERSXY; [tempX1(i), tempY1(i), tempX2(i), tempY2(i)]];
-                    INLIERSXY = unique(INLIERSXY, 'rows', 'stable');
-                    inliers_count = size(INLIERSXY,1);
-                    
-                    percentage = (inliers_count/total);
-                    if (mod(percentage,.03) > .02)
-%                         mod(percentage,.03)
-                        percentage
-                    end
-                    fprintf("iter: %d, ssd: %f, percentage: %f\n", iter, ssd, percentage)
+                if (tempX1(i) == 346 || tempX1(i)==312 || tempX1(i)==407 ...
+                        || tempX1(i)==184 || tempX1(i)==202 || tempX1(i)==394 ...
+                        || tempX1(i)==272)
+                    disp("")
                 end
-
-%             end
-
+                INLIERSXY = [INLIERSXY; [tempX1(i), tempY1(i), tempX2(i), tempY2(i)]];
+                INLIERSXY = unique(INLIERSXY, 'rows', 'stable');
+                inliers_count = size(INLIERSXY,1);
+                
+            end
+        end
+        
+        last_percentage = percentage;
+        percentage = (inliers_count/total);
+        if (last_percentage < percentage)
+            fprintf("iter: %d, ssd: %f, percentage: %f\n", iter, ssd, percentage)
         end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
