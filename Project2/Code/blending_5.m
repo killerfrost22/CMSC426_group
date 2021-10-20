@@ -229,10 +229,17 @@ function [descriptors, X, Y] = feature_descriptors(img_grayscale, x, y)
             resized = imresize(blurred, [8 8]);
             
             reshaped = double(reshape(resized, [64, 1]));
+           
             
             std_dev = std(reshaped);
             mean_reshaped = mean(reshaped);
             standardized = (reshaped - mean_reshaped) ./ std_dev;
+            
+            if (mean(reshaped) >= 175)
+                standardized = 9999*ones(64,1);
+            end
+            
+            
             descriptors = [descriptors standardized];
             X = [X y_i];
             Y = [Y x_i];
@@ -373,7 +380,8 @@ function [MATCHEDXY, filtered, matchedp1X, matchedp1Y, matchedp2X, matchedp2Y] =
     d1size = length(d1(1,:));d2size = length(d2(2,:));
     
     ratios = [];
-
+    mindist = [];
+    
     for i = 1:d1size
         sumSquare = zeros(1,d2size);
         for j = 1:d2size
@@ -382,8 +390,13 @@ function [MATCHEDXY, filtered, matchedp1X, matchedp1Y, matchedp2X, matchedp2Y] =
         [sortedDist, I] = sort(sumSquare);
         ratio = sortedDist(1)/sortedDist(2);
         
-        if (0.05 < ratio && ratio < thresh)
+%         if (sortedDist(1) <= 0.8)
+%             continue;
+%         end
+%         0.04 < ratio &&
+        if ( ratio < thresh)
             
+            mindist = [mindist sortedDist(1)];
             ratios = [ratios; ratio];
             
             matchedp1X = [matchedp1X; p1X(i)];
@@ -401,7 +414,8 @@ function [MATCHEDXY, filtered, matchedp1X, matchedp1Y, matchedp2X, matchedp2Y] =
     
     showMatchedFeatures(img1, img2, [matchedp1X, matchedp1Y], [matchedp2X, matchedp2Y], 'montage')
     
-    mindist = sortedDist
+    [sortedMinDist, ~] = sort(mindist)
+    ratios
     disp("")
 
     
