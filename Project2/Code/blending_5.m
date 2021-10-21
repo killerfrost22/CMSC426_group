@@ -7,7 +7,7 @@
 % the "Current Folder" chosen on left hand side must be located at root
 % location of directory
 
-location = ".\Project2\Images\train_images\Set1\";
+location = ".\Project2\Images\train_images\Set3\";
 % location = "/Users/gyq888/Desktop/Project2/Images/Set1/";
 
 directory = dir(location + '*.jpg')
@@ -65,9 +65,9 @@ for n = 2:num_images
     displayANMS(img1, filteredX1, filteredY1);
     displayANMS(img2, filteredX2, filteredY2);
     
-    match_threshold = 0.25;
-    N_max = 35
-    RANSAC_thresh = 0.0001
+    match_threshold = 0.5;
+    N_max = 25
+    RANSAC_thresh = 0.00001
     
     [MATCHEDXY, filtered, matchedp1X, matchedp1Y, matchedp2X, matchedp2Y] = getMatchedPoints(img1, img2, match_threshold, ...
     d1, d2, filteredX1, filteredY1, filteredX2, filteredY2);
@@ -197,12 +197,15 @@ function [descriptors, X, Y] = feature_descriptors(img_grayscale, x, y)
     
     for i = 1:n_best
         % Patch is of size 41x41, so point is the actual center
+        
         x_i = x(i);
         y_i = y(i);
+        
+        dim = 20;
 
-        if (((x_i-19) >= 1) &&  ((y_i-19)>=1) && ((x_i + 20) <= x_size) && ((y_i + 20) <= y_size))
+        if (((x_i-dim-1) >= 1) &&  ((y_i-dim-1)>=1) && ((x_i + dim) <= x_size) && ((y_i + dim) <= y_size))
             
-            patch = img_grayscale(x_i-19:x_i+20, y_i-19:y_i+20);
+            patch = img_grayscale(x_i - dim - 1:x_i + dim, y_i - dim - 1:y_i + dim);
             
 %             imshow(patch)
 %             figure(10,10); imshow(blurred)
@@ -218,7 +221,7 @@ function [descriptors, X, Y] = feature_descriptors(img_grayscale, x, y)
             
             
             
-            hsize = 10; sigma = 0.001;
+            hsize = 10; sigma = 0.01;
 %             H = fspecial('gaussian',hsize,sigma);
 %             blurred = imfilter(patch,H,'replicate'); 
 %             imshow(blurred);
@@ -229,14 +232,16 @@ function [descriptors, X, Y] = feature_descriptors(img_grayscale, x, y)
             resized = imresize(blurred, [8 8]);
             
             reshaped = double(reshape(resized, [64, 1]));
-           
+            
+            meanlimit = mean(reshaped);
             
             std_dev = std(reshaped);
             mean_reshaped = mean(reshaped);
             standardized = (reshaped - mean_reshaped) ./ std_dev;
             
-            if (mean(reshaped) >= 175)
-                standardized = 9999*ones(64,1);
+            if (meanlimit <= 120 || meanlimit >= 150)
+                standardized = 99999*ones(64,1);
+%                 standardized = 500 + (999999-500) .* rand(64,1);
             end
             
             
@@ -393,8 +398,8 @@ function [MATCHEDXY, filtered, matchedp1X, matchedp1Y, matchedp2X, matchedp2Y] =
 %         if (sortedDist(1) <= 0.8)
 %             continue;
 %         end
-%         0.04 < ratio &&
-        if ( ratio < thresh)
+%         
+        if (0.05 < ratio && ratio < thresh)
             
             mindist = [mindist sortedDist(1)];
             ratios = [ratios; ratio];
