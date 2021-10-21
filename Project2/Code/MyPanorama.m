@@ -7,10 +7,17 @@
 % the "Current Folder" chosen on left hand side must be located at root
 % location of directory
 % location = "..\Images\custom_images\CustomSet1\";
-location = "..\Images\train_images\Set1\";
+
 % location = ".\Project2\Images\train_images\Set1\";
 % location = "/Users/gyq888/Desktop/Project2/Images/Set1/";
 
+function [pano] = MyPanorama()
+
+%% YOUR CODE HERE.
+% Must load images from ../Images/Input/
+% Must return the finished panorama.
+sprintf('Hi there!')
+location = "..\Images\train_images\Set1\";
 directory = dir(location + '*.jpg');
 num_images=size(directory,1);
 
@@ -58,13 +65,13 @@ for n = 2:num_images
     n_best = 500; 
     [X1, Y1] = ANMS(n_best, gray1, corners1, max1);
     [X2, Y2] = ANMS(n_best, gray2, corners2, max2);
-    displayANMS(img1, Y1, X1);
-    displayANMS(img2, Y2, X2);
+%     displayANMS(img1, Y1, X1);
+%     displayANMS(img2, Y2, X2);
     
     [d1, filteredX1, filteredY1] = feature_descriptors(gray1, X1, Y1);
     [d2, filteredX2, filteredY2] = feature_descriptors(gray2, X2, Y2);
-    displayANMS(img1, filteredX1, filteredY1);
-    displayANMS(img2, filteredX2, filteredY2);
+%     displayANMS(img1, filteredX1, filteredY1);
+%     displayANMS(img2, filteredX2, filteredY2);
     
     %%variables
     match_threshold = 0.10;
@@ -75,16 +82,16 @@ for n = 2:num_images
     [matchedp1X, matchedp1Y, matchedp2X, matchedp2Y] = getMatchedPoints(match_threshold, ...
     d1, d2, filteredX1, filteredY1, filteredX2, filteredY2);
     
-    figure
-    hprevImage = showMatchedFeatures(img1, img2, [matchedp1X, matchedp1Y], [matchedp2X, matchedp2Y], 'montage');
-    disp("");
-    
+%     figure
+%     hprevImage = showMatchedFeatures(img1, img2, [matchedp1X, matchedp1Y], [matchedp2X, matchedp2Y], 'montage');
+%     disp("");
+%     
     [INLIERSp1X, INLIERSp1Y, INLIERSp2X, INLIERSp2Y] = RANSAC(N_max, RANSAC_thresh, ...
         matchedp1X, matchedp1Y, matchedp2X, matchedp2Y);
     
-    figure
-    hImage = showMatchedFeatures(img1, img2, [INLIERSp1X, INLIERSp1Y], [INLIERSp2X, INLIERSp2Y], 'montage')
-    disp("")
+%     figure;
+%     hImage = showMatchedFeatures(img1, img2, [INLIERSp1X, INLIERSp1Y], [INLIERSp2X, INLIERSp2Y], 'montage');
+%     disp("");
     
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -190,6 +197,8 @@ end
 figure
 imshow(panorama)
 disp("")
+end
+
 
 function [descriptors, X, Y] = feature_descriptors(img_grayscale, x, y)
     [~, n_best] = size(x);
@@ -426,14 +435,14 @@ function [x_best, y_best] = ANMS(n_best, gray_img, corners, maxima)
     end
 end
 
-function displayANMS(img, x_best, y_best)
-    figure
-    imshow(img)
-    hold on
-%      plot(x_best, y_best, 'Color', 'r', 'Marker','.', 'LineStyle','-')
-    plot(x_best, y_best, 'r.')
-    hold off
-end
+% function displayANMS(img, x_best, y_best)
+%     figure
+%     imshow(img);
+%     hold on
+% %      plot(x_best, y_best, 'Color', 'r', 'Marker','.', 'LineStyle','-')
+%     plot(x_best, y_best, 'r.')
+%     hold off
+% end
 
 function H = est_homography(X,Y,x,y)
     % H = est_homography(X,Y,x,y)
