@@ -239,10 +239,10 @@ function [descriptors, X, Y] = feature_descriptors(img_grayscale, x, y)
             mean_reshaped = mean(reshaped);
             standardized = (reshaped - mean_reshaped) ./ std_dev;
             
-            if (meanlimit <= 120 || meanlimit >= 150)
-                standardized = 99999*ones(64,1);
-%                 standardized = 500 + (999999-500) .* rand(64,1);
-            end
+%             if (meanlimit <= 120 || meanlimit >= 150)
+%                 standardized = 99999*ones(64,1);
+% %                 standardized = 500 + (999999-500) .* rand(64,1);
+%             end
             
             
             descriptors = [descriptors standardized];
@@ -398,8 +398,8 @@ function [MATCHEDXY, filtered, matchedp1X, matchedp1Y, matchedp2X, matchedp2Y] =
 %         if (sortedDist(1) <= 0.8)
 %             continue;
 %         end
-%         
-        if (0.05 < ratio && ratio < thresh)
+%         0.05 < ratio && 
+        if (ratio < thresh)
             
             mindist = [mindist sortedDist(1)];
             ratios = [ratios; ratio];
