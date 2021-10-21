@@ -23,6 +23,7 @@ tforms(num_images) = projective2d(eye(3));
 % Initialize variable to hold image sizes.
 imageSize = zeros(num_images,2);
 
+
 % Iterate over remaining image pairs
 for n = 2:num_images   
     curr_path = directory(n-1);
