@@ -1,0 +1,1 @@
+// Calculates local window movement based on optical flow between frames.

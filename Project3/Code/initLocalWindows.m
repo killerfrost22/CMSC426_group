@@ -1,0 +1,1 @@
+// Creates local windows on boundary of mask.

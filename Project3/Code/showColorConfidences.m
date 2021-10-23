@@ -1,0 +1,1 @@
+// Plots the color confidence for each local window.
