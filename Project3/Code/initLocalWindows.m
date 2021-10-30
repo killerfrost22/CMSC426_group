@@ -29,8 +29,8 @@ for i=1:length(Boundaries)
     [WindowCentersX, WindowCentersY] = ...
         equidistantPointsOnPerimeter(Boundary(:,2), Boundary(:,1), PointsForBoundary(i));
 
-    AllWindowCentersX = [AllWindowCentersX; AllWindowCentersX];
-    AllWindowCentersY = [AllWindowCentersY; AllWindowCentersY];
+    AllWindowCentersX = [AllWindowCentersX; WindowCentersX];
+    AllWindowCentersY = [AllWindowCentersY; WindowCentersY];
 end
 
 LocalSamples = [AllWindowCentersX AllWindowCentersY];
