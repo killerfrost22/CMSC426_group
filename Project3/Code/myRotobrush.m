@@ -46,6 +46,7 @@ writeVideo(outputVideo,I);
 ColorModels = ...
     initColorModels(images{1},mask,mask_outline,LocalWindows,BoundaryWidth,WindowWidth);
 
+% Mark
 % You should set these parameters yourself:
 fcutoff = -1;
 SigmaMin = -1;
@@ -114,6 +115,7 @@ for prev=1:(length(files)-1)
 
     mask_outline = bwperim(mask,4);
 
+    % Don't touch
     % Write video frame:
     imshow(imoverlay(images{curr}, boundarymask(mask,8), 'red'));
     set(gca,'position',[0 0 1 1],'units','normalized')
