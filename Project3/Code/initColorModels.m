@@ -4,5 +4,7 @@ function ColorModels = initializeColorModels(IMG, Mask, MaskOutline, LocalWindow
 % This is another comment
 % Must define a field ColorModels.Confidences: a cell array of the color confidence map for each local window.
 
+%% A GMM model
+
 end
 
