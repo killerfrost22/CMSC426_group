@@ -15,5 +15,20 @@ In this case, one has to come up with a wierd looking fancy function to bound th
 Stitching multiple images seemlessly to create a panorama
 ### Project 3 Rotobrush
 local classifiers, color confidence, shape confidence, local boundary deformation
+#### Segmenting with Localized Classifiers
+##### Initializing the Color Model and Color Model Confidence
+To initialize the color model, we followed the process in Video Snap Cut and converted the input
+image to Lab color space.
+##### Updating Local Windows
+To estimate the large amounts of motion in the object, we used detectSURFFeatures, which is
+rotational invariant. We tried to force matching to focus on the foreground by removing the
+background (setting pixels to NaN) but this often resulted in the algorithm not finding enough
+matching points.
+#### Estimating the Local Boundary Deformation
+To track small bits of motion, the transformation alone was not enough. We used the optical flow
+to account for these small changes.
+#### Updating Local Classifier
+We first convert the image to Lab color space. For each window, we calculated the probability a
+pixel is foreground or background using pdf of the old GMMs and the current image.
 ### Project 4 SfM or SLAM
 Structure from Motion (SfM) or Simultaneous Localization and Mapping (SLAM)
