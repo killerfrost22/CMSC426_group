@@ -1,4 +1,4 @@
-Yizhan & Yingqiao
+% Yizhan & Yingqiao
 function [LandMarksComputed, AllPosesComputed] = SLAMusingGTSAM(DetAll, K, TagSize, TLeftCo_Imgs);
 	% For Input and Output specifications refer to the project pdf
     
@@ -11,16 +11,19 @@ function [LandMarksComputed, AllPosesComputed] = SLAMusingGTSAM(DetAll, K, TagSi
 	% gtsam_toolbox/gtsam_examples
     LandMarksComputed = [];
     AllPosesComputed = [];
-    
     %% Homography
     intrinsics = cameraParameters('IntrinsicMatrix',K');
-    % Initialize the first frame and tag
+    %Setting up fst
+        %First frame
     fst_frame = DetAll{1};
     fst_frame = sortrows(fst_frame,1);
+        %First tag
     fst = fst_frame(1,:);
+
     Co_Wd = [[0,0];[TagSize,0];[TagSize,TagSize];[0,TagSize]];
     Co_Img = [[fst(2),fst(3)];[fst(4),fst(5)];[fst(6),fst(7)];[fst(8),fst(9)]];
 
+    
     % Detection data stored as [TagID, p1x, p1y, p2x, p2y, p3x, p3y, p4x, p4y]
     first_col = fst_frame(:, 1);
     tag_10_data = fst_frame(first_col == 10, :);
@@ -34,22 +37,23 @@ function [LandMarksComputed, AllPosesComputed] = SLAMusingGTSAM(DetAll, K, TagSi
     p4y = tag_10_data(9);
     tag_10_coords = [p1x p1y; p2x p2y; p3x p3y; p4x p4y];
     origin_coords = [0 0; TagSize 0; TagSize TagSize; 0 TagSize];
-    
-    % Calculate the homography matrix
+    % homography a different method
     tform = estimateGeometricTransform(tag_10_coords, origin_coords, 'projective');
+    
+    
+    % Get Homography matrices
     H = est_homography(Co_Img(:,1),Co_Img(:,2),Co_Wd(:,1),Co_Wd(:,2));
     Hp = inv(K) * H;
     
     [U, ~, V] = svd([Hp(:,1), Hp(:,2), cross(Hp(:,1),Hp(:,2))]);
     R = U*[1,0,0;0,1,0;0,0,det(U*V')]*V';
     T = Hp(:,3)/(norm(Hp(:,1)));
-    x0 = -R'*T;
-    AllPosesComputed(1,:) = x0';
+    AllPosesComputed(1,:) = (-R'*T)';
     
     Data.R{1} = R;
     Data.T{1} = T;
     
-    % Compute the landmarks
+    % landmarks
     for k=1:size(DetAll{1})
        tag = fst_frame(k,:);
        Co_Img = [[tag(2),tag(3)];[tag(4),tag(5)];[tag(6),tag(7)];[tag(8),tag(9)]];
@@ -88,7 +92,7 @@ function [LandMarksComputed, AllPosesComputed] = SLAMusingGTSAM(DetAll, K, TagSi
         Data.R{frame} = R;
         Data.T{frame} = T;
         
-        % compute the landmark for each tag
+        % landmarks for each tag
         for k=1:size(DetAll{frame})
            tag = curr_Fr(k,:);
            if ~ismember(tag(1),LandMarksComputed(:,1))
@@ -99,11 +103,13 @@ function [LandMarksComputed, AllPosesComputed] = SLAMusingGTSAM(DetAll, K, TagSi
         end
     end
     LandMarksComputed = sortrows(LandMarksComputed,1);
-    % Z is positive
+    % Since we know Z is always positive, we avoid sign errors by taking
+    % the absolute value of the Z coordinate
     AllPosesComputed(:,3) = abs(AllPosesComputed(:,3));
     
-    %% Plot the first figure and the second figure (Pre GTSAM)
+    %% Plot
     figure(1);
+
     plotPoints = true;
     if plotPoints
         plot3(AllPosesComputed(:,1),AllPosesComputed(:,2),AllPosesComputed(:,3),'o');
@@ -122,19 +128,30 @@ function [LandMarksComputed, AllPosesComputed] = SLAMusingGTSAM(DetAll, K, TagSi
         plot3(LandMarksComputed(:,4),LandMarksComputed(:,5), zeros(81,1),'b*');
         plot3(LandMarksComputed(:,6),LandMarksComputed(:,7), zeros(81,1),'green*');
         plot3(LandMarksComputed(:,8),LandMarksComputed(:,9), zeros(81,1),'black*');
-        % Must not exceed the boundary of 2~9
+%       Must not exceed tthe boundary of 9
+%       plot3(LandMarksComputed(:,10),LandMarksComputed(:,11), zeros(81,1), 'purple*');
         legend('show')
         hold off;
     end
     
     %% GTSAM 
     graph = NonlinearFactorGraph;
-    fst_Est = Values;
+    fstEst = Values;
+    
+    pointPriorNoise = noiseModel.Diagonal.Sigmas(ones(3,1) * 1e-6);
+    pointNoise = noiseModel.Diagonal.Sigmas(ones(3,1) * 1e-6);
+    posePriorNoise = noiseModel.Diagonal.Sigmas(ones(6,1) * .001);
+    poseNoise = noiseModel.Diagonal.Sigmas(ones(6,1) * .001);
+    measurementNoise = noiseModel.Isotropic.Sigma(2,1.0);
+    
     % Add prior for first pose
-    graph.add(PriorFactorPose3(symbol('x',1),Pose3(Rot3(Data.R{1}), Point3(Data.T{1})), noiseModel.Diagonal.Sigmas(ones(6,1) * .001)));
-    % Add prior for World origin
-    graph.add(PriorFactorPoint3(symbol('L',10),Point3(0,0,0),noiseModel.Diagonal.Sigmas(ones(3,1) * 1e-6)));
-    % Add identity between factor and poses
+    graph.add(PriorFactorPose3(symbol('x',1),Pose3(Rot3(Data.R{1}), Point3(Data.T{1})), posePriorNoise));
+    
+   
+    % Add prior for Co_Wd origin
+    graph.add(PriorFactorPoint3(symbol('L',10),Point3(0,0,0),pointPriorNoise));
+
+    % Add identity between factor between poses
     for i = 1:size(DetAll,2)-1
         p1 = Pose3(Rot3(Data.R{i}),Point3(Data.T{i}));
         p2 = Pose3(Rot3(Data.R{i+1}),Point3(Data.T{i+1}));
@@ -144,7 +161,7 @@ function [LandMarksComputed, AllPosesComputed] = SLAMusingGTSAM(DetAll, K, TagSi
         
         graph.add(BetweenFactorPose3(symbol('x',i),symbol('x',i+1),...
             id,...
-            noiseModel.Diagonal.Sigmas(ones(6,1) * .001)));
+            poseNoise));
     end
     
     % projection factors
@@ -154,16 +171,16 @@ function [LandMarksComputed, AllPosesComputed] = SLAMusingGTSAM(DetAll, K, TagSi
         for j = 1:size(frame,1)
             row = frame(j,:);
             graph.add(GenericProjectionFactorCal3_S2(...
-                Point2(row(2),row(3)), noisenoiseModel.Isotropic.Sigma(2,1.0), symbol('x',i),...
+                Point2(row(2),row(3)), measurementNoise, symbol('x',i),...
                 symbol('L',row(1)), Kp));
             graph.add(GenericProjectionFactorCal3_S2(...
-                Point2(row(4),row(5)), noisenoiseModel.Isotropic.Sigma(2,1.0), symbol('x',i),...
+                Point2(row(4),row(5)), measurementNoise, symbol('x',i),...
                 symbol('M',row(1)), Kp));
             graph.add(GenericProjectionFactorCal3_S2(...
-                Point2(row(6),row(7)), noisenoiseModel.Isotropic.Sigma(2,1.0), symbol('x',i),...
+                Point2(row(6),row(7)), measurementNoise, symbol('x',i),...
                 symbol('N',row(1)), Kp));
             graph.add(GenericProjectionFactorCal3_S2(...
-                Point2(row(8),row(9)), noisenoiseModel.Isotropic.Sigma(2,1.0), symbol('x',i),...
+                Point2(row(8),row(9)), measurementNoise, symbol('x',i),...
                 symbol('O',row(1)), Kp));
         end
     end
@@ -171,48 +188,53 @@ function [LandMarksComputed, AllPosesComputed] = SLAMusingGTSAM(DetAll, K, TagSi
     % Add between factors between tags
     for i = 1:size(LandMarksComputed,1)
         graph.add(BetweenFactorPoint3(symbol('L',LandMarksComputed(i,1)),...
-            symbol('M',LandMarksComputed(i,1)),Point3(TagSize, 0, 0),noiseModel.Diagonal.Sigmas(ones(3,1) * 1e-6)));
+            symbol('M',LandMarksComputed(i,1)),Point3(TagSize, 0, 0),pointPriorNoise));
         graph.add(BetweenFactorPoint3(symbol('L',LandMarksComputed(i,1)),...
-            symbol('O',LandMarksComputed(i,1)),Point3(0, TagSize, 0),noiseModel.Diagonal.Sigmas(ones(3,1) * 1e-6)));
+            symbol('O',LandMarksComputed(i,1)),Point3(0, TagSize, 0),pointPriorNoise));
         graph.add(BetweenFactorPoint3(symbol('M',LandMarksComputed(i,1)),...
-            symbol('N',LandMarksComputed(i,1)),Point3(TagSize, 0, 0),noiseModel.Diagonal.Sigmas(ones(3,1) * 1e-6)));
+            symbol('N',LandMarksComputed(i,1)),Point3(TagSize, 0, 0),pointPriorNoise));
         graph.add(BetweenFactorPoint3(symbol('O',LandMarksComputed(i,1)),...
-            symbol('N',LandMarksComputed(i,1)),Point3(0, TagSize, 0),noiseModel.Diagonal.Sigmas(ones(3,1) * 1e-6)));
+            symbol('N',LandMarksComputed(i,1)),Point3(0, TagSize, 0),pointPriorNoise));
     end
     
-    % graph.print(sprintf('\nFactor Graph: '));
+    %graph.print(sprintf('\nFactor Graph: '));
     
     for i = 1:size(DetAll,2)
-        fst_Est.insert(symbol('x',i), Pose3(Rot3(Data.R{i}), Point3(Data.T{i})));
+        fstEst.insert(symbol('x',i), Pose3(Rot3(Data.R{i}), Point3(Data.T{i})));
     end
     
     
-%% Optimize using Dogleg (failed)
+%% Optimize using Dogleg 
 % params = DoglegParams;
 % params.setAbsoluteErrorTol(1e-15);
 % params.setRelativeErrorTol(1e-15);
 % params.setVerbosity('ERROR');
 % params.setVerbosityDL('VERBOSE');
 % params.setOrdering(graph.orderingCOLAMD());
-% optimizer = DoglegOptimizer(graph, fst_Estimate, params);
+% optimizer = DoglegOptimizer(graph, fstEstimate, params);
 % 
 % result = optimizer.optimizeSafely();
 % result.print('final result');
 %%
     for i = 1:size(LandMarksComputed,1)
-       fst_Est.insert(symbol('L',LandMarksComputed(i, 1)),Point3([LandMarksComputed(i, 2:3) 0]'));
-       fst_Est.insert(symbol('M',LandMarksComputed(i, 1)),Point3([LandMarksComputed(i, 4:5) 0]'));
-       fst_Est.insert(symbol('N',LandMarksComputed(i, 1)),Point3([LandMarksComputed(i, 6:7) 0]'));
-       fst_Est.insert(symbol('O',LandMarksComputed(i, 1)),Point3([LandMarksComputed(i, 8:9) 0]')); 
+       fstEst.insert(symbol('L',LandMarksComputed(i, 1)),Point3([LandMarksComputed(i, 2:3) 0]'));
+       fstEst.insert(symbol('M',LandMarksComputed(i, 1)),Point3([LandMarksComputed(i, 4:5) 0]'));
+       fstEst.insert(symbol('N',LandMarksComputed(i, 1)),Point3([LandMarksComputed(i, 6:7) 0]'));
+       fstEst.insert(symbol('O',LandMarksComputed(i, 1)),Point3([LandMarksComputed(i, 8:9) 0]')); 
     end
     
     parameters = LevenbergMarquardtParams;
     parameters.setlambdaInitial(1.0);
     parameters.setVerbosityLM('trylambda');
-    optimizer = LevenbergMarquardtOptimizer(graph, fst_Est, parameters);
+    optimizer = LevenbergMarquardtOptimizer(graph, fstEst, parameters);
     result = optimizer.optimize();
     
-    
+%     marginals = Marginals(graph, result);
+%     cla
+%     hold on;
+%     plot3DPoints(result, []);  
+%     plot3DTrajectory(result, '*', 1, 8);
+%     hold off
     %% Retrieving landmarks
     for i = 1:size(LandMarksComputed,1)
         pL(i, :) = [result.at(symbol('L', LandMarksComputed(i, 1))).x result.at(symbol('L', LandMarksComputed(i, 1))).y result.at(symbol('L', LandMarksComputed(i, 1))).z];
@@ -224,18 +246,19 @@ function [LandMarksComputed, AllPosesComputed] = SLAMusingGTSAM(DetAll, K, TagSi
     
     % Retrieving poses
 
-    % for frame = 1:size(DetAll,2)
-    % pose = result.at(symbol('x', frame));
-    % r = pose.rotation.matrix;
-    % t = pose.translation.vector;
-    % x = -r'*t;
-    % AllPosesComputed(frame,:) = x';
-    % end
-    
+%     for frame = 1:size(DetAll,2)
+%         pose = result.at(symbol('x', frame));
+%         r = pose.rotation.matrix;
+%         t = pose.translation.vector;
+%         x = -r'*t;
+%         AllPosesComputed(frame,:) = x';
+%     end
     AllPosesComputed(:,3) = abs(AllPosesComputed(:,3));
     
-    %% Plot the third figure and the last figure (Post GTSAM)
+    %% Plot
+    
     figure(3);
+
     if plotPoints
         plot3(AllPosesComputed(:,1),AllPosesComputed(:,2),AllPosesComputed(:,3),'o');
         hold on;
@@ -261,16 +284,15 @@ function [LandMarksComputed, AllPosesComputed] = SLAMusingGTSAM(DetAll, K, TagSi
  end
  
 function H = est_homography(X,Y,x,y)
+% https://www.mathworks.com/matlabcentral/answers/26141-homography-matrix
+% Compute the homography matrix from source(x,y) to destination(X,Y)
+    A = zeros(length(x(:))*2,9);
 
-% Direct copy from the source: https://www.mathworks.com/matlabcentral/answers/26141-homography-matrix
-% This function compute the homography matrix from source (x,y) to destination (X,Y)
-A = zeros(length(x(:))*2,9);
+    for i = 1:length(x(:))
+        a = [x(i),y(i),1];
+        A((i-1)*2+1:(i-1)*2+2,1:9) = [[[x(i),y(i),1] [0 0 0];[0 0 0] [x(i),y(i),1]] -[X(i);Y(i)]*a];
+    end
 
-for i = 1:length(x(:))
- a = [x(i),y(i),1];
- A((i-1)*2+1:(i-1)*2+2,1:9) = [[[x(i),y(i),1] [0 0 0];[0 0 0] [x(i),y(i),1]] -[X(i);Y(i)]*a];
-end
-
-[U S V] = svd(A);
-H = reshape(V(:,9),3,3)';
+    [U S V] = svd(A);
+    H = reshape(V(:,9),3,3)';
 end 
