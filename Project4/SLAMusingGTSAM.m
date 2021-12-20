@@ -229,7 +229,12 @@ function [LandMarksComputed, AllPosesComputed] = SLAMusingGTSAM(DetAll, K, TagSi
     optimizer = LevenbergMarquardtOptimizer(graph, fstEst, parameters);
     result = optimizer.optimize();
     
-    
+%     marginals = Marginals(graph, result);
+%     cla
+%     hold on;
+%     plot3DPoints(result, []);  
+%     plot3DTrajectory(result, '*', 1, 8);
+%     hold off
     %% Retrieving landmarks
     for i = 1:size(LandMarksComputed,1)
         pL(i, :) = [result.at(symbol('L', LandMarksComputed(i, 1))).x result.at(symbol('L', LandMarksComputed(i, 1))).y result.at(symbol('L', LandMarksComputed(i, 1))).z];
@@ -281,13 +286,13 @@ function [LandMarksComputed, AllPosesComputed] = SLAMusingGTSAM(DetAll, K, TagSi
 function H = est_homography(X,Y,x,y)
 % https://www.mathworks.com/matlabcentral/answers/26141-homography-matrix
 % Compute the homography matrix from source(x,y) to destination(X,Y)
-A = zeros(length(x(:))*2,9);
+    A = zeros(length(x(:))*2,9);
 
-for i = 1:length(x(:))
- a = [x(i),y(i),1];
- A((i-1)*2+1:(i-1)*2+2,1:9) = [[[x(i),y(i),1] [0 0 0];[0 0 0] [x(i),y(i),1]] -[X(i);Y(i)]*a];
-end
+    for i = 1:length(x(:))
+        a = [x(i),y(i),1];
+        A((i-1)*2+1:(i-1)*2+2,1:9) = [[[x(i),y(i),1] [0 0 0];[0 0 0] [x(i),y(i),1]] -[X(i);Y(i)]*a];
+    end
 
-[U S V] = svd(A);
-H = reshape(V(:,9),3,3)';
+    [U S V] = svd(A);
+    H = reshape(V(:,9),3,3)';
 end 
