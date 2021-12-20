@@ -1,7 +1,7 @@
 %% Wrapper for the CMSC426Course final project at University of Maryland, College Park
 % Code by: Nitin J. Sanket (nitinsan@terpmail.umd.edu)
 % (Originally for CMSC828T)
-% Yizhan And Yingqiao
+
 clc
 clear all
 close all

@@ -1,5 +1,4 @@
-% Yizhan & Yingqiao
-function [LandMarksComputed, AllPosesComputed] = SLAMusingGTSAM(DetAll, K, TagSize, TLeftImgs);
+ function [LandMarksComputed, AllPosesComputed] = SLAMusingGTSAM(DetAll, K, TagSize, TLeftImgs);
 	% For Input and Output specifications refer to the project pdf
     
 	import gtsam.*
@@ -251,16 +250,14 @@ function [LandMarksComputed, AllPosesComputed] = SLAMusingGTSAM(DetAll, K, TagSi
     end
     
     figure(3);
-    
+    title('DatasetwithGTSAM');
     if plotPoints
         plot3(AllPosesComputed(:,1),AllPosesComputed(:,2),AllPosesComputed(:,3),'o');
         hold on;
-        title('DatasetwithGTSAM');
-        plot3(LandMarksComputed(:,2),LandMarksComputed(:,3), LandMarksComputed(:,4), 'r*');
-        plot3(LandMarksComputed(:,5),LandMarksComputed(:,6), LandMarksComputed(:,7),'b*');
-        plot3(LandMarksComputed(:,8),LandMarksComputed(:,9), LandMarksComputed(:,10),'green*');
-        plot3(LandMarksComputed(:,11),LandMarksComputed(:,12), LandMarksComputed(:,13),'black*');
-        
+        plot3(LandMarksComputed(:,2),LandMarksComputed(:,3), zeros(81,1), 'r*');
+        plot3(LandMarksComputed(:,4),LandMarksComputed(:,5), zeros(81,1),'b*');
+        plot3(LandMarksComputed(:,6),LandMarksComputed(:,7), zeros(81,1),'green*');
+        plot3(LandMarksComputed(:,8),LandMarksComputed(:,9), zeros(81,1),'black*');
         hold off;
     end
  end
