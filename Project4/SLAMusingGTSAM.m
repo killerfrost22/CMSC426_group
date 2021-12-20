@@ -1,5 +1,5 @@
 % Yizhan & Yingqiao
-function [LandMarksComputed, AllPosesComputed] = SLAMusingGTSAM(DetAll, K, TagSize, TLeftCo_Imgs);
+function [LandMarksComputed, AllPosesComputed] = SLAMusingGTSAM(DetAll, K, TagSize, TLeftImgs);
 	% For Input and Output specifications refer to the project pdf
     
 	import gtsam.*
@@ -11,18 +11,17 @@ function [LandMarksComputed, AllPosesComputed] = SLAMusingGTSAM(DetAll, K, TagSi
 	% gtsam_toolbox/gtsam_examples
     LandMarksComputed = [];
     AllPosesComputed = [];
-    %% Homography
+
     intrinsics = cameraParameters('IntrinsicMatrix',K');
-    %Setting up fst
-        %First frame
+    % Initialize the first frame and tag
     fst_frame = DetAll{1};
     fst_frame = sortrows(fst_frame,1);
-        %First tag
     fst = fst_frame(1,:);
 
+    % World Coordinates
     Co_Wd = [[0,0];[TagSize,0];[TagSize,TagSize];[0,TagSize]];
+    % Image Coordinates
     Co_Img = [[fst(2),fst(3)];[fst(4),fst(5)];[fst(6),fst(7)];[fst(8),fst(9)]];
-
     
     % Detection data stored as [TagID, p1x, p1y, p2x, p2y, p3x, p3y, p4x, p4y]
     first_col = fst_frame(:, 1);
@@ -37,11 +36,10 @@ function [LandMarksComputed, AllPosesComputed] = SLAMusingGTSAM(DetAll, K, TagSi
     p4y = tag_10_data(9);
     tag_10_coords = [p1x p1y; p2x p2y; p3x p3y; p4x p4y];
     origin_coords = [0 0; TagSize 0; TagSize TagSize; 0 TagSize];
-    % homography a different method
+    
+    % Calculate the homography matrix
     tform = estimateGeometricTransform(tag_10_coords, origin_coords, 'projective');
-    
-    
-    % Get Homography matrices
+
     H = est_homography(Co_Img(:,1),Co_Img(:,2),Co_Wd(:,1),Co_Wd(:,2));
     Hp = inv(K) * H;
     
@@ -53,7 +51,7 @@ function [LandMarksComputed, AllPosesComputed] = SLAMusingGTSAM(DetAll, K, TagSi
     Data.R{1} = R;
     Data.T{1} = T;
     
-    % landmarks
+    % Record the landmarks
     for k=1:size(DetAll{1})
        tag = fst_frame(k,:);
        Co_Img = [[tag(2),tag(3)];[tag(4),tag(5)];[tag(6),tag(7)];[tag(8),tag(9)]];
@@ -62,7 +60,7 @@ function [LandMarksComputed, AllPosesComputed] = SLAMusingGTSAM(DetAll, K, TagSi
     end
     
 
-    %% Iterate through frames
+    % Iterate through frames
     for frame=2:length(DetAll)
         pre_X = []; pre_Y = []; curr_X = []; curr_Y = [];
         pre_Fr = LandMarksComputed;
@@ -92,7 +90,7 @@ function [LandMarksComputed, AllPosesComputed] = SLAMusingGTSAM(DetAll, K, TagSi
         Data.R{frame} = R;
         Data.T{frame} = T;
         
-        % landmarks for each tag
+        % get the landmark for each tag
         for k=1:size(DetAll{frame})
            tag = curr_Fr(k,:);
            if ~ismember(tag(1),LandMarksComputed(:,1))
@@ -103,11 +101,10 @@ function [LandMarksComputed, AllPosesComputed] = SLAMusingGTSAM(DetAll, K, TagSi
         end
     end
     LandMarksComputed = sortrows(LandMarksComputed,1);
-    % Since we know Z is always positive, we avoid sign errors by taking
-    % the absolute value of the Z coordinate
+    % Z is always positive in our case, so we take the abs value in function
     AllPosesComputed(:,3) = abs(AllPosesComputed(:,3));
     
-    %% Plot
+    %% Plot the first two figures (PRE-GTSAM)
     figure(1);
 
     plotPoints = true;
@@ -128,8 +125,8 @@ function [LandMarksComputed, AllPosesComputed] = SLAMusingGTSAM(DetAll, K, TagSi
         plot3(LandMarksComputed(:,4),LandMarksComputed(:,5), zeros(81,1),'b*');
         plot3(LandMarksComputed(:,6),LandMarksComputed(:,7), zeros(81,1),'green*');
         plot3(LandMarksComputed(:,8),LandMarksComputed(:,9), zeros(81,1),'black*');
-%       Must not exceed tthe boundary of 9
-%       plot3(LandMarksComputed(:,10),LandMarksComputed(:,11), zeros(81,1), 'purple*');
+        % Must not exceed tthe boundary of 9
+        % plot3(LandMarksComputed(:,10),LandMarksComputed(:,11), zeros(81,1), 'purple*');
         legend('show')
         hold off;
     end
@@ -191,14 +188,14 @@ function [LandMarksComputed, AllPosesComputed] = SLAMusingGTSAM(DetAll, K, TagSi
             symbol('N',LandMarksComputed(i,1)),Point3(0, TagSize, 0),noiseModel.Diagonal.Sigmas(ones(3,1) * 1e-6)));
     end
     
-    %graph.print(sprintf('\nFactor Graph: '));
+    % graph.print(sprintf('\nFactor Graph: '));
     
     for i = 1:size(DetAll,2)
         fstEst.insert(symbol('x',i), Pose3(Rot3(Data.R{i}), Point3(Data.T{i})));
     end
     
     
-%% Optimize using Dogleg 
+%% Optimize using Dogleg (failed)
 % params = DoglegParams;
 % params.setAbsoluteErrorTol(1e-15);
 % params.setRelativeErrorTol(1e-15);
@@ -249,7 +246,7 @@ function [LandMarksComputed, AllPosesComputed] = SLAMusingGTSAM(DetAll, K, TagSi
 %     end
     AllPosesComputed(:,3) = abs(AllPosesComputed(:,3));
     
-    %% Plot
+    %% % Plot the last two figures (POST-GTSAM)
     
     figure(3);
 
@@ -278,8 +275,7 @@ function [LandMarksComputed, AllPosesComputed] = SLAMusingGTSAM(DetAll, K, TagSi
  end
  
 function H = est_homography(X,Y,x,y)
-% https://www.mathworks.com/matlabcentral/answers/26141-homography-matrix
-% Compute the homography matrix from source(x,y) to destination(X,Y)
+% Code Reference: https://www.mathworks.com/matlabcentral/answers/26141-homography-matrix
     A = zeros(length(x(:))*2,9);
 
     for i = 1:length(x(:))
