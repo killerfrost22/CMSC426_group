@@ -1,4 +1,5 @@
- function [LandMarksComputed, AllPosesComputed] = SLAMusingGTSAM(DetAll, K, TagSize, TLeftImgs);
+% Yizhan & Yingqiao
+function [LandMarksComputed, AllPosesComputed] = SLAMusingGTSAM(DetAll, K, TagSize, TLeftCo_Imgs);
 	% For Input and Output specifications refer to the project pdf
     
 	import gtsam.*
@@ -12,21 +13,20 @@
     AllPosesComputed = [];
     %% Homography
     intrinsics = cameraParameters('IntrinsicMatrix',K');
-    %Setting up initial
+    %Setting up fst
         %First frame
-    frame1 = DetAll{1};
-    frame1 = sortrows(frame1,1);
+    fst_frame = DetAll{1};
+    fst_frame = sortrows(fst_frame,1);
         %First tag
-    initial = frame1(1,:);
+    fst = fst_frame(1,:);
 
-    World = [[0,0];[TagSize,0];[TagSize,TagSize];[0,TagSize]];
-    IMG = [[initial(2),initial(3)];[initial(4),initial(5)];[initial(6),initial(7)];[initial(8),initial(9)]];
-    
-    frame1 = DetAll{1};
+    Co_Wd = [[0,0];[TagSize,0];[TagSize,TagSize];[0,TagSize]];
+    Co_Img = [[fst(2),fst(3)];[fst(4),fst(5)];[fst(6),fst(7)];[fst(8),fst(9)]];
+
     
     % Detection data stored as [TagID, p1x, p1y, p2x, p2y, p3x, p3y, p4x, p4y]
-    first_col = frame1(:, 1);
-    tag_10_data = frame1(first_col == 10, :);
+    first_col = fst_frame(:, 1);
+    tag_10_data = fst_frame(first_col == 10, :);
     p1x = tag_10_data(2);
     p1y = tag_10_data(3);
     p2x = tag_10_data(4);
@@ -42,48 +42,44 @@
     
     
     % Get Homography matrices
-    H = est_homography(IMG(:,1),IMG(:,2),World(:,1),World(:,2));
-    
+    H = est_homography(Co_Img(:,1),Co_Img(:,2),Co_Wd(:,1),Co_Wd(:,2));
     Hp = inv(K) * H;
-
-    Rot = [Hp(:,1), Hp(:,2), cross(Hp(:,1),Hp(:,2))];
     
-    [U, ~, V] = svd(Rot);
+    [U, ~, V] = svd([Hp(:,1), Hp(:,2), cross(Hp(:,1),Hp(:,2))]);
     R = U*[1,0,0;0,1,0;0,0,det(U*V')]*V';
     T = Hp(:,3)/(norm(Hp(:,1)));
-    x0 = -R'*T;
-    AllPosesComputed(1,:) = x0';
+    AllPosesComputed(1,:) = (-R'*T)';
     
     Data.R{1} = R;
     Data.T{1} = T;
     
     % landmarks
     for k=1:size(DetAll{1})
-       tag = frame1(k,:);
-       IMG = [[tag(2),tag(3)];[tag(4),tag(5)];[tag(6),tag(7)];[tag(8),tag(9)]];
-       LandMarks = pointsToWorld(intrinsics,R',T,IMG);
+       tag = fst_frame(k,:);
+       Co_Img = [[tag(2),tag(3)];[tag(4),tag(5)];[tag(6),tag(7)];[tag(8),tag(9)]];
+       LandMarks = pointsToWorld(intrinsics,R',T,Co_Img);
        LandMarksComputed = [LandMarksComputed; [tag(1), reshape(LandMarks.',1,[])]];
     end
     
 
     %% Iterate through frames
     for frame=2:length(DetAll)
-        lastX = []; lastY = []; currX = []; currY = [];
-        lastFrame = LandMarksComputed;
-        currFrame = sortrows(DetAll{frame}, 1);
-        for currTag=1:size(currFrame,1)
-            for lastTag=1:size(lastFrame,1)
-                if (lastFrame(lastTag, 1) == currFrame(currTag, 1))
-                    lastX = [lastX; lastFrame(lastTag, 2); lastFrame(lastTag, 4); lastFrame(lastTag, 6); lastFrame(lastTag, 8)];
-                    lastY = [lastY; lastFrame(lastTag, 3); lastFrame(lastTag, 5); lastFrame(lastTag, 7); lastFrame(lastTag, 9)];
-                    currX = [currX; currFrame(currTag, 2); currFrame(currTag, 4); currFrame(currTag, 6); currFrame(currTag, 8)];
-                    currY = [currY; currFrame(currTag, 3); currFrame(currTag, 5); currFrame(currTag, 7); currFrame(currTag, 9)];  
+        pre_X = []; pre_Y = []; curr_X = []; curr_Y = [];
+        pre_Fr = LandMarksComputed;
+        curr_Fr = sortrows(DetAll{frame}, 1);
+        for curr_Tag=1:size(curr_Fr,1)
+            for lastTag=1:size(pre_Fr,1)
+                if (pre_Fr(lastTag, 1) == curr_Fr(curr_Tag, 1))
+                    pre_X = [pre_X; pre_Fr(lastTag, 2); pre_Fr(lastTag, 4); pre_Fr(lastTag, 6); pre_Fr(lastTag, 8)];
+                    pre_Y = [pre_Y; pre_Fr(lastTag, 3); pre_Fr(lastTag, 5); pre_Fr(lastTag, 7); pre_Fr(lastTag, 9)];
+                    curr_X = [curr_X; curr_Fr(curr_Tag, 2); curr_Fr(curr_Tag, 4); curr_Fr(curr_Tag, 6); curr_Fr(curr_Tag, 8)];
+                    curr_Y = [curr_Y; curr_Fr(curr_Tag, 3); curr_Fr(curr_Tag, 5); curr_Fr(curr_Tag, 7); curr_Fr(curr_Tag, 9)];  
                 end
             end
         end
  
         
-        H = est_homography(currX, currY, lastX, lastY);
+        H = est_homography(curr_X, curr_Y, pre_X, pre_Y);
         Hp = inv(K) * H;
 
         Rot = [Hp(:,1), Hp(:,2), cross(Hp(:,1),Hp(:,2))];
@@ -98,10 +94,10 @@
         
         % landmarks for each tag
         for k=1:size(DetAll{frame})
-           tag = currFrame(k,:);
+           tag = curr_Fr(k,:);
            if ~ismember(tag(1),LandMarksComputed(:,1))
-               IMG = [[tag(2),tag(3)];[tag(4),tag(5)];[tag(6),tag(7)];[tag(8),tag(9)]];
-               LandMarks = pointsToWorld(intrinsics,R',T,IMG);
+               Co_Img = [[tag(2),tag(3)];[tag(4),tag(5)];[tag(6),tag(7)];[tag(8),tag(9)]];
+               LandMarks = pointsToWorld(intrinsics,R',T,Co_Img);
                LandMarksComputed = [LandMarksComputed; [tag(1), reshape(LandMarks.',1,[])]];
            end
         end
@@ -113,31 +109,41 @@
     
     %% Plot
     figure(1);
-    title('Without-GTSAM-no pose');
+
     plotPoints = true;
     if plotPoints
         plot3(AllPosesComputed(:,1),AllPosesComputed(:,2),AllPosesComputed(:,3),'o');
         hold on;
-        plot3(LandMarksComputed(:,2),LandMarksComputed(:,3), zeros(81,1), 'green*');
+        title('Without-GTSAM-no pose');
+        plot3(LandMarksComputed(:,2),LandMarksComputed(:,9), zeros(81,1), 'green*');
+        hold off;
+    end
+    
+    figure(2);
+    if plotPoints
+        plot3(AllPosesComputed(:,1),AllPosesComputed(:,2),AllPosesComputed(:,3),'o');
+        hold on;
+        title('Without-GTSAM-no pose with landmarks');
+        plot3(LandMarksComputed(:,2),LandMarksComputed(:,3), zeros(81,1), 'r*');
+        plot3(LandMarksComputed(:,4),LandMarksComputed(:,5), zeros(81,1),'b*');
+        plot3(LandMarksComputed(:,6),LandMarksComputed(:,7), zeros(81,1),'green*');
+        plot3(LandMarksComputed(:,8),LandMarksComputed(:,9), zeros(81,1),'black*');
+%       Must not exceed tthe boundary of 9
+%       plot3(LandMarksComputed(:,10),LandMarksComputed(:,11), zeros(81,1), 'purple*');
+        legend('show')
         hold off;
     end
     
     %% GTSAM 
     graph = NonlinearFactorGraph;
-    initialEst = Values;
-    
-    pointPriorNoise = noiseModel.Diagonal.Sigmas(ones(3,1) * 1e-6);
-    pointNoise = noiseModel.Diagonal.Sigmas(ones(3,1) * 1e-6);
-    posePriorNoise = noiseModel.Diagonal.Sigmas(ones(6,1) * .001);
-    poseNoise = noiseModel.Diagonal.Sigmas(ones(6,1) * .001);
-    measurementNoise = noiseModel.Isotropic.Sigma(2,1.0);
+    fstEst = Values;
     
     % Add prior for first pose
-    graph.add(PriorFactorPose3(symbol('x',1),Pose3(Rot3(Data.R{1}), Point3(Data.T{1})), posePriorNoise));
+    graph.add(PriorFactorPose3(symbol('x',1),Pose3(Rot3(Data.R{1}), Point3(Data.T{1})), noiseModel.Diagonal.Sigmas(ones(6,1) * .001)));
     
    
-    % Add prior for world origin
-    graph.add(PriorFactorPoint3(symbol('L',10),Point3(0,0,0),pointPriorNoise));
+    % Add prior for Co_Wd origin
+    graph.add(PriorFactorPoint3(symbol('L',10),Point3(0,0,0),noiseModel.Diagonal.Sigmas(ones(3,1) * 1e-6)));
 
     % Add identity between factor between poses
     for i = 1:size(DetAll,2)-1
@@ -149,7 +155,7 @@
         
         graph.add(BetweenFactorPose3(symbol('x',i),symbol('x',i+1),...
             id,...
-            poseNoise));
+            noiseModel.Diagonal.Sigmas(ones(6,1) * .001)));
     end
     
     % projection factors
@@ -159,16 +165,16 @@
         for j = 1:size(frame,1)
             row = frame(j,:);
             graph.add(GenericProjectionFactorCal3_S2(...
-                Point2(row(2),row(3)), measurementNoise, symbol('x',i),...
+                Point2(row(2),row(3)), noiseModel.Isotropic.Sigma(2,1.0), symbol('x',i),...
                 symbol('L',row(1)), Kp));
             graph.add(GenericProjectionFactorCal3_S2(...
-                Point2(row(4),row(5)), measurementNoise, symbol('x',i),...
+                Point2(row(4),row(5)), noiseModel.Isotropic.Sigma(2,1.0), symbol('x',i),...
                 symbol('M',row(1)), Kp));
             graph.add(GenericProjectionFactorCal3_S2(...
-                Point2(row(6),row(7)), measurementNoise, symbol('x',i),...
+                Point2(row(6),row(7)), noiseModel.Isotropic.Sigma(2,1.0), symbol('x',i),...
                 symbol('N',row(1)), Kp));
             graph.add(GenericProjectionFactorCal3_S2(...
-                Point2(row(8),row(9)), measurementNoise, symbol('x',i),...
+                Point2(row(8),row(9)), noiseModel.Isotropic.Sigma(2,1.0), symbol('x',i),...
                 symbol('O',row(1)), Kp));
         end
     end
@@ -176,19 +182,19 @@
     % Add between factors between tags
     for i = 1:size(LandMarksComputed,1)
         graph.add(BetweenFactorPoint3(symbol('L',LandMarksComputed(i,1)),...
-            symbol('M',LandMarksComputed(i,1)),Point3(TagSize, 0, 0),pointPriorNoise));
+            symbol('M',LandMarksComputed(i,1)),Point3(TagSize, 0, 0),noiseModel.Diagonal.Sigmas(ones(3,1) * 1e-6)));
         graph.add(BetweenFactorPoint3(symbol('L',LandMarksComputed(i,1)),...
-            symbol('O',LandMarksComputed(i,1)),Point3(0, TagSize, 0),pointPriorNoise));
+            symbol('O',LandMarksComputed(i,1)),Point3(0, TagSize, 0),noiseModel.Diagonal.Sigmas(ones(3,1) * 1e-6)));
         graph.add(BetweenFactorPoint3(symbol('M',LandMarksComputed(i,1)),...
-            symbol('N',LandMarksComputed(i,1)),Point3(TagSize, 0, 0),pointPriorNoise));
+            symbol('N',LandMarksComputed(i,1)),Point3(TagSize, 0, 0),noiseModel.Diagonal.Sigmas(ones(3,1) * 1e-6)));
         graph.add(BetweenFactorPoint3(symbol('O',LandMarksComputed(i,1)),...
-            symbol('N',LandMarksComputed(i,1)),Point3(0, TagSize, 0),pointPriorNoise));
+            symbol('N',LandMarksComputed(i,1)),Point3(0, TagSize, 0),noiseModel.Diagonal.Sigmas(ones(3,1) * 1e-6)));
     end
     
     %graph.print(sprintf('\nFactor Graph: '));
     
     for i = 1:size(DetAll,2)
-        initialEst.insert(symbol('x',i), Pose3(Rot3(Data.R{i}), Point3(Data.T{i})));
+        fstEst.insert(symbol('x',i), Pose3(Rot3(Data.R{i}), Point3(Data.T{i})));
     end
     
     
@@ -199,25 +205,30 @@
 % params.setVerbosity('ERROR');
 % params.setVerbosityDL('VERBOSE');
 % params.setOrdering(graph.orderingCOLAMD());
-% optimizer = DoglegOptimizer(graph, initialEstimate, params);
+% optimizer = DoglegOptimizer(graph, fstEstimate, params);
 % 
 % result = optimizer.optimizeSafely();
 % result.print('final result');
 %%
     for i = 1:size(LandMarksComputed,1)
-       initialEst.insert(symbol('L',LandMarksComputed(i, 1)),Point3([LandMarksComputed(i, 2:3) 0]'));
-       initialEst.insert(symbol('M',LandMarksComputed(i, 1)),Point3([LandMarksComputed(i, 4:5) 0]'));
-       initialEst.insert(symbol('N',LandMarksComputed(i, 1)),Point3([LandMarksComputed(i, 6:7) 0]'));
-       initialEst.insert(symbol('O',LandMarksComputed(i, 1)),Point3([LandMarksComputed(i, 8:9) 0]')); 
+       fstEst.insert(symbol('L',LandMarksComputed(i, 1)),Point3([LandMarksComputed(i, 2:3) 0]'));
+       fstEst.insert(symbol('M',LandMarksComputed(i, 1)),Point3([LandMarksComputed(i, 4:5) 0]'));
+       fstEst.insert(symbol('N',LandMarksComputed(i, 1)),Point3([LandMarksComputed(i, 6:7) 0]'));
+       fstEst.insert(symbol('O',LandMarksComputed(i, 1)),Point3([LandMarksComputed(i, 8:9) 0]')); 
     end
     
     parameters = LevenbergMarquardtParams;
     parameters.setlambdaInitial(1.0);
     parameters.setVerbosityLM('trylambda');
-    optimizer = LevenbergMarquardtOptimizer(graph, initialEst, parameters);
+    optimizer = LevenbergMarquardtOptimizer(graph, fstEst, parameters);
     result = optimizer.optimize();
     
-    
+%     marginals = Marginals(graph, result);
+%     cla
+%     hold on;
+%     plot3DPoints(result, []);  
+%     plot3DTrajectory(result, '*', 1, 8);
+%     hold off
     %% Retrieving landmarks
     for i = 1:size(LandMarksComputed,1)
         pL(i, :) = [result.at(symbol('L', LandMarksComputed(i, 1))).x result.at(symbol('L', LandMarksComputed(i, 1))).y result.at(symbol('L', LandMarksComputed(i, 1))).z];
@@ -229,52 +240,53 @@
     
     % Retrieving poses
 
-    for frame = 1:size(DetAll,2)
-        pose = result.at(symbol('x', frame));
-        r = pose.rotation.matrix;
-        t = pose.translation.vector;
-        x = -r'*t;
-        AllPosesComputed(frame,:) = x';
-    end
+%     for frame = 1:size(DetAll,2)
+%         pose = result.at(symbol('x', frame));
+%         r = pose.rotation.matrix;
+%         t = pose.translation.vector;
+%         x = -r'*t;
+%         AllPosesComputed(frame,:) = x';
+%     end
     AllPosesComputed(:,3) = abs(AllPosesComputed(:,3));
     
     %% Plot
     
-    figure(2);
-    title('DatasetwithGTSAM-no pose');
+    figure(3);
+
     if plotPoints
         plot3(AllPosesComputed(:,1),AllPosesComputed(:,2),AllPosesComputed(:,3),'o');
         hold on;
+        title('DatasetwithGTSAM-no pose');
         plot3(LandMarksComputed(:,2),LandMarksComputed(:,3), zeros(81,1), 'g*');
         hold off;
+        legend('show')
     end
     
-    figure(3);
-    title('DatasetwithGTSAM');
+    figure(4);
     if plotPoints
         plot3(AllPosesComputed(:,1),AllPosesComputed(:,2),AllPosesComputed(:,3),'o');
         hold on;
-        plot3(LandMarksComputed(:,2),LandMarksComputed(:,3), zeros(81,1), 'r*');
-        plot3(LandMarksComputed(:,4),LandMarksComputed(:,5), zeros(81,1),'b*');
-        plot3(LandMarksComputed(:,6),LandMarksComputed(:,7), zeros(81,1),'green*');
-        plot3(LandMarksComputed(:,8),LandMarksComputed(:,9), zeros(81,1),'black*');
+        title('DatasetwithGTSAM');
+        plot3(LandMarksComputed(:,2),LandMarksComputed(:,3), LandMarksComputed(:,4), 'r*');
+        plot3(LandMarksComputed(:,5),LandMarksComputed(:,6), LandMarksComputed(:,7),'b*');
+        plot3(LandMarksComputed(:,8),LandMarksComputed(:,9), LandMarksComputed(:,10),'green*');
+        plot3(LandMarksComputed(:,11),LandMarksComputed(:,12), LandMarksComputed(:,13),'black*');
+        
         hold off;
+        legend('x','y','z')
     end
  end
  
 function H = est_homography(X,Y,x,y)
 % https://www.mathworks.com/matlabcentral/answers/26141-homography-matrix
 % Compute the homography matrix from source(x,y) to destination(X,Y)
-A = zeros(length(x(:))*2,9);
+    A = zeros(length(x(:))*2,9);
 
-for i = 1:length(x(:))
- a = [x(i),y(i),1];
- b = [0 0 0];
- c = [X(i);Y(i)];
- d = -c*a;
- A((i-1)*2+1:(i-1)*2+2,1:9) = [[[x(i),y(i),1] [0 0 0];[0 0 0] [x(i),y(i),1]] -[X(i);Y(i)]*a];
-end
+    for i = 1:length(x(:))
+        a = [x(i),y(i),1];
+        A((i-1)*2+1:(i-1)*2+2,1:9) = [[[x(i),y(i),1] [0 0 0];[0 0 0] [x(i),y(i),1]] -[X(i);Y(i)]*a];
+    end
 
-[U S V] = svd(A);
-H = reshape(V(:,9),3,3)';
+    [U S V] = svd(A);
+    H = reshape(V(:,9),3,3)';
 end 
