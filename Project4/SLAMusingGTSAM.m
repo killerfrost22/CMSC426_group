@@ -48,8 +48,7 @@ function [LandMarksComputed, AllPosesComputed] = SLAMusingGTSAM(DetAll, K, TagSi
     [U, ~, V] = svd([Hp(:,1), Hp(:,2), cross(Hp(:,1),Hp(:,2))]);
     R = U*[1,0,0;0,1,0;0,0,det(U*V')]*V';
     T = Hp(:,3)/(norm(Hp(:,1)));
-    x0 = -R'*T;
-    AllPosesComputed(1,:) = x0';
+    AllPosesComputed(1,:) = (-R'*T)';
     
     Data.R{1} = R;
     Data.T{1} = T;
