@@ -1,4 +1,5 @@
- function [LandMarksComputed, AllPosesComputed] = SLAMusingGTSAM(DetAll, K, TagSize, TLeftImgs);
+% Yizhan & Yingqiao
+function [LandMarksComputed, AllPosesComputed] = SLAMusingGTSAM(DetAll, K, TagSize, TLeftImgs);
 	% For Input and Output specifications refer to the project pdf
     
 	import gtsam.*
@@ -113,12 +114,27 @@
     
     %% Plot
     figure(1);
-    title('Without-GTSAM-no pose');
+
     plotPoints = true;
     if plotPoints
         plot3(AllPosesComputed(:,1),AllPosesComputed(:,2),AllPosesComputed(:,3),'o');
         hold on;
+        title('Without-GTSAM-no pose');
         plot3(LandMarksComputed(:,2),LandMarksComputed(:,3), zeros(81,1), 'green*');
+        hold off;
+    end
+    
+    figure(2);
+    if plotPoints
+        plot3(AllPosesComputed(:,1),AllPosesComputed(:,2),AllPosesComputed(:,3),'o');
+        hold on;
+        title('Without-GTSAM-no pose with landmarks');
+        plot3(LandMarksComputed(:,2),LandMarksComputed(:,3), zeros(81,1), 'r*');
+        plot3(LandMarksComputed(:,4),LandMarksComputed(:,5), zeros(81,1),'b*');
+        plot3(LandMarksComputed(:,6),LandMarksComputed(:,7), zeros(81,1),'green*');
+        plot3(LandMarksComputed(:,8),LandMarksComputed(:,9), zeros(81,1),'black*');
+%       Must not exceed tthe boundary of 9
+%       plot3(LandMarksComputed(:,10),LandMarksComputed(:,11), zeros(81,1), 'purple*');
         hold off;
     end
     
@@ -229,35 +245,37 @@
     
     % Retrieving poses
 
-    for frame = 1:size(DetAll,2)
-        pose = result.at(symbol('x', frame));
-        r = pose.rotation.matrix;
-        t = pose.translation.vector;
-        x = -r'*t;
-        AllPosesComputed(frame,:) = x';
-    end
+%     for frame = 1:size(DetAll,2)
+%         pose = result.at(symbol('x', frame));
+%         r = pose.rotation.matrix;
+%         t = pose.translation.vector;
+%         x = -r'*t;
+%         AllPosesComputed(frame,:) = x';
+%     end
     AllPosesComputed(:,3) = abs(AllPosesComputed(:,3));
     
     %% Plot
     
-    figure(2);
-    title('DatasetwithGTSAM-no pose');
+    figure(3);
+
     if plotPoints
         plot3(AllPosesComputed(:,1),AllPosesComputed(:,2),AllPosesComputed(:,3),'o');
         hold on;
+        title('DatasetwithGTSAM-no pose');
         plot3(LandMarksComputed(:,2),LandMarksComputed(:,3), zeros(81,1), 'g*');
         hold off;
     end
     
-    figure(3);
-    title('DatasetwithGTSAM');
+    figure(4);
     if plotPoints
         plot3(AllPosesComputed(:,1),AllPosesComputed(:,2),AllPosesComputed(:,3),'o');
         hold on;
-        plot3(LandMarksComputed(:,2),LandMarksComputed(:,3), zeros(81,1), 'r*');
-        plot3(LandMarksComputed(:,4),LandMarksComputed(:,5), zeros(81,1),'b*');
-        plot3(LandMarksComputed(:,6),LandMarksComputed(:,7), zeros(81,1),'green*');
-        plot3(LandMarksComputed(:,8),LandMarksComputed(:,9), zeros(81,1),'black*');
+        title('DatasetwithGTSAM');
+        plot3(LandMarksComputed(:,2),LandMarksComputed(:,3), LandMarksComputed(:,4), 'r*');
+        plot3(LandMarksComputed(:,5),LandMarksComputed(:,6), LandMarksComputed(:,7),'b*');
+        plot3(LandMarksComputed(:,8),LandMarksComputed(:,9), LandMarksComputed(:,10),'green*');
+        plot3(LandMarksComputed(:,11),LandMarksComputed(:,12), LandMarksComputed(:,13),'black*');
+        
         hold off;
     end
  end
@@ -269,9 +287,6 @@ A = zeros(length(x(:))*2,9);
 
 for i = 1:length(x(:))
  a = [x(i),y(i),1];
- b = [0 0 0];
- c = [X(i);Y(i)];
- d = -c*a;
  A((i-1)*2+1:(i-1)*2+2,1:9) = [[[x(i),y(i),1] [0 0 0];[0 0 0] [x(i),y(i),1]] -[X(i);Y(i)]*a];
 end
 
