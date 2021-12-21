@@ -23,7 +23,7 @@ function [LandMarksComputed, AllPosesComputed] = SLAMusingGTSAM(DetAll, K, TagSi
     % Image Coordinates
     Co_Img = [[fst(2),fst(3)];[fst(4),fst(5)];[fst(6),fst(7)];[fst(8),fst(9)]];
     
-    % Detection data stored as [TagID, p1x, p1y, p2x, p2y, p3x, p3y, p4x, p4y]
+    % Detection initial data stored as [TagID, p1x, p1y, p2x, p2y, p3x, p3y, p4x, p4y]
     first_col = fst_frame(:, 1);
     tag_10_data = fst_frame(first_col == 10, :);
     p1x = tag_10_data(2);
@@ -40,12 +40,11 @@ function [LandMarksComputed, AllPosesComputed] = SLAMusingGTSAM(DetAll, K, TagSi
     % Calculate the homography matrix
     tform = estimateGeometricTransform(tag_10_coords, origin_coords, 'projective');
 
-    H = est_homography(Co_Img(:,1),Co_Img(:,2),Co_Wd(:,1),Co_Wd(:,2));
-    Hp = inv(K) * H;
+    H_Mx = inv(K) * est_homography(Co_Img(:,1),Co_Img(:,2),Co_Wd(:,1),Co_Wd(:,2));
     
-    [U, ~, V] = svd([Hp(:,1), Hp(:,2), cross(Hp(:,1),Hp(:,2))]);
+    [U, ~, V] = svd([H_Mx(:,1), H_Mx(:,2), cross(H_Mx(:,1),H_Mx(:,2))]);
     R = U*[1,0,0;0,1,0;0,0,det(U*V')]*V';
-    T = Hp(:,3)/(norm(Hp(:,1)));
+    T = H_Mx(:,3)/(norm(H_Mx(:,1)));
     AllPosesComputed(1,:) = (-R'*T)';
     
     Data.R{1} = R;
@@ -77,14 +76,14 @@ function [LandMarksComputed, AllPosesComputed] = SLAMusingGTSAM(DetAll, K, TagSi
         end
  
         
-        H = est_homography(curr_X, curr_Y, pre_X, pre_Y);
-        Hp = inv(K) * H;
+       
+        H_Mx = inv(K) * est_homography(curr_X, curr_Y, pre_X, pre_Y);
 
-        Rot = [Hp(:,1), Hp(:,2), cross(Hp(:,1),Hp(:,2))];
+        Rot = [H_Mx(:,1), H_Mx(:,2), cross(H_Mx(:,1),H_Mx(:,2))];
         
         [U, ~, V] = svd(Rot);
         R = U*[1,0,0;0,1,0;0,0,det(U*V')]*V';
-        T = Hp(:,3)/(norm(Hp(:,1)));
+        T = H_Mx(:,3)/(norm(H_Mx(:,1)));
         x = -R'*T;
         AllPosesComputed(frame,:) = x';
         Data.R{frame} = R;
@@ -285,4 +284,5 @@ function H = est_homography(X,Y,x,y)
 
     [U S V] = svd(A);
     H = reshape(V(:,9),3,3)';
+end 
 end 
