@@ -74,14 +74,10 @@ function [LandMarksComputed, AllPosesComputed] = SLAMusingGTSAM(DetAll, K, TagSi
                 end
             end
         end
- 
         
-       
-        H_Mx = inv(K) * est_homography(curr_X, curr_Y, pre_X, pre_Y);
-
-        Rot = [H_Mx(:,1), H_Mx(:,2), cross(H_Mx(:,1),H_Mx(:,2))];
+        H_Mx = inv(K) * est_homography(curr_X, curr_Y, pre_X, pre_Y);       
+        [U, ~, V] = svd([H_Mx(:,1), H_Mx(:,2), cross(H_Mx(:,1),H_Mx(:,2))]);
         
-        [U, ~, V] = svd(Rot);
         R = U*[1,0,0;0,1,0;0,0,det(U*V')]*V';
         T = H_Mx(:,3)/(norm(H_Mx(:,1)));
         x = -R'*T;
@@ -105,30 +101,23 @@ function [LandMarksComputed, AllPosesComputed] = SLAMusingGTSAM(DetAll, K, TagSi
     
     %% Plot the first two figures (PRE-GTSAM)
     figure(1);
-
-    plotPoints = true;
-    if plotPoints
-        plot3(AllPosesComputed(:,1),AllPosesComputed(:,2),AllPosesComputed(:,3),'o');
-        hold on;
-        title('Dataset Without GTSAM---No Pose');
-        plot3(LandMarksComputed(:,2),LandMarksComputed(:,9), zeros(81,1), 'green*');
-        hold off;
-    end
+    plot3(AllPosesComputed(:,1),AllPosesComputed(:,2),AllPosesComputed(:,3),'o');
+    hold on;
+    title('Dataset Without GTSAM---No Pose');
+    plot3(LandMarksComputed(:,2),LandMarksComputed(:,9), zeros(81,1), 'green*');
+    hold off;
     
     figure(2);
-    if plotPoints
-        plot3(AllPosesComputed(:,1),AllPosesComputed(:,2),AllPosesComputed(:,3),'o');
-        hold on;
-        title('Dataset Without GTSAM---No Pose With Landmarks');
-        plot3(LandMarksComputed(:,2),LandMarksComputed(:,3), zeros(81,1), 'r*');
-        plot3(LandMarksComputed(:,4),LandMarksComputed(:,5), zeros(81,1),'b*');
-        plot3(LandMarksComputed(:,6),LandMarksComputed(:,7), zeros(81,1),'green*');
-        plot3(LandMarksComputed(:,8),LandMarksComputed(:,9), zeros(81,1),'black*');
-        % Must not exceed tthe boundary of 9
-        % plot3(LandMarksComputed(:,10),LandMarksComputed(:,11), zeros(81,1), 'purple*');
-        legend('show')
-        hold off;
-    end
+    plot3(AllPosesComputed(:,1),AllPosesComputed(:,2),AllPosesComputed(:,3),'o');
+    hold on;
+    title('Dataset Without GTSAM---No Pose With Landmarks');
+    plot3(LandMarksComputed(:,2),LandMarksComputed(:,3), zeros(81,1), 'r*');
+    plot3(LandMarksComputed(:,4),LandMarksComputed(:,5), zeros(81,1),'b*');
+    plot3(LandMarksComputed(:,6),LandMarksComputed(:,7), zeros(81,1),'green*');
+    plot3(LandMarksComputed(:,8),LandMarksComputed(:,9), zeros(81,1),'black*');  
+    legend('show')
+    hold off;
+  
     
     %% GTSAM 
     graph = NonlinearFactorGraph;
@@ -159,19 +148,18 @@ function [LandMarksComputed, AllPosesComputed] = SLAMusingGTSAM(DetAll, K, TagSi
     for i = 1:size(DetAll,2)
         frame = DetAll{i};
         for j = 1:size(frame,1)
-            row = frame(j,:);
             graph.add(GenericProjectionFactorCal3_S2(...
-                Point2(row(2),row(3)), noiseModel.Isotropic.Sigma(2,1.0), symbol('x',i),...
-                symbol('L',row(1)), Kp));
+                Point2(frame(j,2),frame(j,3)), noiseModel.Isotropic.Sigma(2,1.0), symbol('x',i),...
+                symbol('L',frame(j,1)), Kp));
             graph.add(GenericProjectionFactorCal3_S2(...
-                Point2(row(4),row(5)), noiseModel.Isotropic.Sigma(2,1.0), symbol('x',i),...
-                symbol('M',row(1)), Kp));
+                Point2(frame(j,4),frame(j,5)), noiseModel.Isotropic.Sigma(2,1.0), symbol('x',i),...
+                symbol('M',frame(j,1)), Kp));
             graph.add(GenericProjectionFactorCal3_S2(...
-                Point2(row(6),row(7)), noiseModel.Isotropic.Sigma(2,1.0), symbol('x',i),...
-                symbol('N',row(1)), Kp));
+                Point2(frame(j,6),frame(j,7)), noiseModel.Isotropic.Sigma(2,1.0), symbol('x',i),...
+                symbol('N',frame(j,1)), Kp));
             graph.add(GenericProjectionFactorCal3_S2(...
-                Point2(row(8),row(9)), noiseModel.Isotropic.Sigma(2,1.0), symbol('x',i),...
-                symbol('O',row(1)), Kp));
+                Point2(frame(j,8),frame(j,9)), noiseModel.Isotropic.Sigma(2,1.0), symbol('x',i),...
+                symbol('O',frame(j,1)), Kp));
         end
     end
     
@@ -186,8 +174,6 @@ function [LandMarksComputed, AllPosesComputed] = SLAMusingGTSAM(DetAll, K, TagSi
         graph.add(BetweenFactorPoint3(symbol('O',LandMarksComputed(i,1)),...
             symbol('N',LandMarksComputed(i,1)),Point3(0, TagSize, 0),noiseModel.Diagonal.Sigmas(ones(3,1) * 1e-6)));
     end
-    
-    % graph.print(sprintf('\nFactor Graph: '));
     
     for i = 1:size(DetAll,2)
         fstEst.insert(symbol('x',i), Pose3(Rot3(Data.R{i}), Point3(Data.T{i})));
@@ -213,10 +199,10 @@ function [LandMarksComputed, AllPosesComputed] = SLAMusingGTSAM(DetAll, K, TagSi
        fstEst.insert(symbol('O',LandMarksComputed(i, 1)),Point3([LandMarksComputed(i, 8:9) 0]')); 
     end
     
-    parameters = LevenbergMarquardtParams;
-    parameters.setlambdaInitial(1.0);
-    parameters.setVerbosityLM('trylambda');
-    optimizer = LevenbergMarquardtOptimizer(graph, fstEst, parameters);
+    LMf = LevenbergMarquardtParams;
+    LMf.setlambdaInitial(1.0);
+    LMf.setVerbosityLM('trylambda');
+    optimizer = LevenbergMarquardtOptimizer(graph, fstEst, LMf);
     result = optimizer.optimize();
     
 %     marginals = Marginals(graph, result);
@@ -248,29 +234,23 @@ function [LandMarksComputed, AllPosesComputed] = SLAMusingGTSAM(DetAll, K, TagSi
     %% % Plot the last two figures (POST-GTSAM)
     
     figure(3);
-
-    if plotPoints
-        plot3(AllPosesComputed(:,1),AllPosesComputed(:,2),AllPosesComputed(:,3),'o');
-        hold on;
-        title('Dataset With GTSAM---No Pose');
-        plot3(LandMarksComputed(:,2),LandMarksComputed(:,3), zeros(81,1), 'g*');
-        hold off;
-        legend('show')
-    end
+    plot3(AllPosesComputed(:,1),AllPosesComputed(:,2),AllPosesComputed(:,3),'o');
+    hold on;
+    title('Dataset With GTSAM---No Pose');
+    plot3(LandMarksComputed(:,2),LandMarksComputed(:,3), zeros(81,1), 'g*');
+    hold off;
+    legend('show')
     
     figure(4);
-    if plotPoints
-        plot3(AllPosesComputed(:,1),AllPosesComputed(:,2),AllPosesComputed(:,3),'o');
-        hold on;
-        title('Dataset with GTSAM');
-        plot3(LandMarksComputed(:,2),LandMarksComputed(:,3), LandMarksComputed(:,4), 'r*');
-        plot3(LandMarksComputed(:,5),LandMarksComputed(:,6), LandMarksComputed(:,7),'b*');
-        plot3(LandMarksComputed(:,8),LandMarksComputed(:,9), LandMarksComputed(:,10),'green*');
-        plot3(LandMarksComputed(:,11),LandMarksComputed(:,12), LandMarksComputed(:,13),'black*');
-        
-        hold off;
-        legend('x','y','z')
-    end
+    plot3(AllPosesComputed(:,1),AllPosesComputed(:,2),AllPosesComputed(:,3),'o');
+    hold on;
+    title('Dataset with GTSAM');
+    plot3(LandMarksComputed(:,2),LandMarksComputed(:,3), LandMarksComputed(:,4), 'r*');
+    plot3(LandMarksComputed(:,5),LandMarksComputed(:,6), LandMarksComputed(:,7),'b*');
+    plot3(LandMarksComputed(:,8),LandMarksComputed(:,9), LandMarksComputed(:,10),'green*');
+    plot3(LandMarksComputed(:,11),LandMarksComputed(:,12), LandMarksComputed(:,13),'black*');    
+    hold off;
+    legend('x','y','z')
  end
  
 function H = est_homography(X,Y,x,y)
@@ -284,5 +264,4 @@ function H = est_homography(X,Y,x,y)
 
     [U,~,V] = svd(A);
     H = reshape(V(:,9),3,3)';
-end 
 end 
