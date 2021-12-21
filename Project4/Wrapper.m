@@ -17,8 +17,8 @@ load('Data/CalibParams.mat');
 
 %% Load Data (Two datasets have been provided: DataMapping and DataSquare; ...
 %% Uncomment the one you are using):
-% load('Data/DataMappingFall2020.mat');
-load('Data/DataSquareFall2020.mat');
+load('Data/DataMappingFall2020.mat');
+% load('Data/DataSquareFall2020.mat');
 %% SLAM Using GTSAM (DetAll: is a cell array with AprilTag detections per frame along with the TagID, ...
 %  K: Camera Calibration Parameters, TagSize: AprilTag Size in the real world, ...
 %  LeftImgs: cell array where each cell is a Image, TLeftImgs: Timestamps for LeftImgs)
