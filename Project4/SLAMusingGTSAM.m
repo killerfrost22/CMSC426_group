@@ -105,6 +105,7 @@ function [LandMarksComputed, AllPosesComputed] = SLAMusingGTSAM(DetAll, K, TagSi
     hold on;
     title('Dataset Without GTSAM---No Pose');
     plot3(LandMarksComputed(:,2),LandMarksComputed(:,9), zeros(81,1), 'green*');
+    legend('landmark poses','ground')
     hold off;
     
     figure(2);
@@ -115,7 +116,7 @@ function [LandMarksComputed, AllPosesComputed] = SLAMusingGTSAM(DetAll, K, TagSi
     plot3(LandMarksComputed(:,4),LandMarksComputed(:,5), zeros(81,1),'b*');
     plot3(LandMarksComputed(:,6),LandMarksComputed(:,7), zeros(81,1),'green*');
     plot3(LandMarksComputed(:,8),LandMarksComputed(:,9), zeros(81,1),'black*');  
-    legend('show')
+    legend('landmarks','red','blue','green','black')
     hold off;
   
     
@@ -220,15 +221,6 @@ function [LandMarksComputed, AllPosesComputed] = SLAMusingGTSAM(DetAll, K, TagSi
     end
     LandMarksComputed = [LandMarksComputed(:, 1) pL pM pN pO];
     
-    % Retrieving poses
-
-%     for frame = 1:size(DetAll,2)
-%         pose = result.at(symbol('x', frame));
-%         r = pose.rotation.matrix;
-%         t = pose.translation.vector;
-%         x = -r'*t;
-%         AllPosesComputed(frame,:) = x';
-%     end
     AllPosesComputed(:,3) = abs(AllPosesComputed(:,3));
     
     %% % Plot the last two figures (POST-GTSAM)
@@ -238,8 +230,7 @@ function [LandMarksComputed, AllPosesComputed] = SLAMusingGTSAM(DetAll, K, TagSi
     hold on;
     title('Dataset With GTSAM---No Pose');
     plot3(LandMarksComputed(:,2),LandMarksComputed(:,3), zeros(81,1), 'g*');
-    hold off;
-    legend('show')
+    hold off;    legend('landmark poses','ground')
     
     figure(4);
     plot3(AllPosesComputed(:,1),AllPosesComputed(:,2),AllPosesComputed(:,3),'o');
@@ -250,7 +241,7 @@ function [LandMarksComputed, AllPosesComputed] = SLAMusingGTSAM(DetAll, K, TagSi
     plot3(LandMarksComputed(:,8),LandMarksComputed(:,9), LandMarksComputed(:,10),'green*');
     plot3(LandMarksComputed(:,11),LandMarksComputed(:,12), LandMarksComputed(:,13),'black*');    
     hold off;
-    legend('x','y','z')
+    legend('landmarks','red','blue','green','black')
  end
  
 function H = est_homography(X,Y,x,y)
