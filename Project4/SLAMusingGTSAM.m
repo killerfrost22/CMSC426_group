@@ -126,19 +126,14 @@ function [LandMarksComputed, AllPosesComputed] = SLAMusingGTSAM(DetAll, K, TagSi
     graph = NonlinearFactorGraph;
     fstEst = Values;
     
-    % Add prior for first pose
+    % Add prior for the first pose
     graph.add(PriorFactorPose3(symbol('x',1),Pose3(Rot3(Data.R{1}), Point3(Data.T{1})), noiseModel.Diagonal.Sigmas(ones(6,1) * .001)));
-    
-   
-    % Add prior for Co_Wd origin
+    % Add prior for the World origin
     graph.add(PriorFactorPoint3(symbol('L',10),Point3(0,0,0),noiseModel.Diagonal.Sigmas(ones(3,1) * 1e-6)));
-
     % Add identity between factor between poses
     for i = 1:size(DetAll,2)-1
         p1 = Pose3(Rot3(Data.R{i}),Point3(Data.T{i}));
-        p2 = Pose3(Rot3(Data.R{i+1}),Point3(Data.T{i+1}));
-        bt = p1.between(p2);
-        
+        p2 = Pose3(Rot3(Data.R{i+1}),Point3(Data.T{i+1}));      
         id = Pose3(eye(4,4));
         
         graph.add(BetweenFactorPose3(symbol('x',i),symbol('x',i+1),...
@@ -146,7 +141,7 @@ function [LandMarksComputed, AllPosesComputed] = SLAMusingGTSAM(DetAll, K, TagSi
             noiseModel.Diagonal.Sigmas(ones(6,1) * .001)));
     end
     
-    % projection factors
+    % Projection factors
     Kp = Cal3_S2(K(1, 1), K(2, 2), 0, K(1,3), K(2, 3));
     for i = 1:size(DetAll,2)
         frame = DetAll{i};
@@ -206,7 +201,7 @@ function [LandMarksComputed, AllPosesComputed] = SLAMusingGTSAM(DetAll, K, TagSi
     LMf.setlambdaInitial(1.0);
     LMf.setVerbosityLM('trylambda');
     optimizer = LevenbergMarquardtOptimizer(graph, fstEst, LMf);
-    result = optimizer.optimize();
+    res = optimizer.optimize();
     
 %     marginals = Marginals(graph, result);
 %     cla
@@ -216,12 +211,12 @@ function [LandMarksComputed, AllPosesComputed] = SLAMusingGTSAM(DetAll, K, TagSi
 %     hold off
     %% Retrieving landmarks
     for i = 1:size(LandMarksComputed,1)
-        pL(i, :) = [result.at(symbol('L', LandMarksComputed(i, 1))).x result.at(symbol('L', LandMarksComputed(i, 1))).y result.at(symbol('L', LandMarksComputed(i, 1))).z];
-        pM(i, :) = [result.at(symbol('M', LandMarksComputed(i, 1))).x result.at(symbol('M', LandMarksComputed(i, 1))).y result.at(symbol('M', LandMarksComputed(i, 1))).z];
-        pN(i, :) = [result.at(symbol('N', LandMarksComputed(i, 1))).x result.at(symbol('N', LandMarksComputed(i, 1))).y result.at(symbol('N', LandMarksComputed(i, 1))).z];
-        pO(i, :) = [result.at(symbol('O', LandMarksComputed(i, 1))).x result.at(symbol('O', LandMarksComputed(i, 1))).y result.at(symbol('O', LandMarksComputed(i, 1))).z];
+        P_L(i, :) = [res.at(symbol('L', LandMarksComputed(i, 1))).x res.at(symbol('L', LandMarksComputed(i, 1))).y res.at(symbol('L', LandMarksComputed(i, 1))).z];
+        P_M(i, :) = [res.at(symbol('M', LandMarksComputed(i, 1))).x res.at(symbol('M', LandMarksComputed(i, 1))).y res.at(symbol('M', LandMarksComputed(i, 1))).z];
+        P_N(i, :) = [res.at(symbol('N', LandMarksComputed(i, 1))).x res.at(symbol('N', LandMarksComputed(i, 1))).y res.at(symbol('N', LandMarksComputed(i, 1))).z];
+        P_O(i, :) = [res.at(symbol('O', LandMarksComputed(i, 1))).x res.at(symbol('O', LandMarksComputed(i, 1))).y res.at(symbol('O', LandMarksComputed(i, 1))).z];
     end
-    LandMarksComputed = [LandMarksComputed(:, 1) pL pM pN pO];
+    LandMarksComputed = [LandMarksComputed(:, 1) P_L P_M P_N P_O];
     
     AllPosesComputed(:,3) = abs(AllPosesComputed(:,3));
     
@@ -233,7 +228,8 @@ function [LandMarksComputed, AllPosesComputed] = SLAMusingGTSAM(DetAll, K, TagSi
     title('Dataset With GTSAM---No Pose');
     xlabel('x');ylabel('y');zlabel('z');
     plot3(LandMarksComputed(:,2),LandMarksComputed(:,3), zeros(81,1), 'g*');
-    hold off;    legend('landmark poses','ground')
+    hold off;    
+    legend('landmark poses','ground')
     
     figure(4);
     plot3(AllPosesComputed(:,1),AllPosesComputed(:,2),AllPosesComputed(:,3),'o');
@@ -243,7 +239,7 @@ function [LandMarksComputed, AllPosesComputed] = SLAMusingGTSAM(DetAll, K, TagSi
     plot3(LandMarksComputed(:,2),LandMarksComputed(:,3), LandMarksComputed(:,4), 'r*');
     plot3(LandMarksComputed(:,5),LandMarksComputed(:,6), LandMarksComputed(:,7),'b*');
     plot3(LandMarksComputed(:,8),LandMarksComputed(:,9), LandMarksComputed(:,10),'green*');
-    plot3(LandMarksComputed(:,11),LandMarksComputed(:,12), LandMarksComputed(:,13),'black*');    
+    plot3(LandMarksComputed(:,11),LandMarksComputed(:,12), LandMarksComputed(:,13),'black*');  
     hold off;
     legend('landmarks','red','blue','green','black')
  end
@@ -259,4 +255,4 @@ function H = est_homography(X,Y,x,y)
 
     [U,~,V] = svd(A);
     H = reshape(V(:,9),3,3)';
-end 
+end  
