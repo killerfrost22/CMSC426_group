@@ -201,7 +201,7 @@ function [LandMarksComputed, AllPosesComputed] = SLAMusingGTSAM(DetAll, K, TagSi
     LMf.setlambdaInitial(1.0);
     LMf.setVerbosityLM('trylambda');
     optimizer = LevenbergMarquardtOptimizer(graph, fstEst, LMf);
-    res = optimizer.optimize();
+    Ans = optimizer.optimize();
     
 %     marginals = Marginals(graph, result);
 %     cla
@@ -211,12 +211,12 @@ function [LandMarksComputed, AllPosesComputed] = SLAMusingGTSAM(DetAll, K, TagSi
 %     hold off
     %% Retrieving landmarks
     for i = 1:size(LandMarksComputed,1)
-        P_L(i, :) = [res.at(symbol('L', LandMarksComputed(i, 1))).x res.at(symbol('L', LandMarksComputed(i, 1))).y res.at(symbol('L', LandMarksComputed(i, 1))).z];
-        P_M(i, :) = [res.at(symbol('M', LandMarksComputed(i, 1))).x res.at(symbol('M', LandMarksComputed(i, 1))).y res.at(symbol('M', LandMarksComputed(i, 1))).z];
-        P_N(i, :) = [res.at(symbol('N', LandMarksComputed(i, 1))).x res.at(symbol('N', LandMarksComputed(i, 1))).y res.at(symbol('N', LandMarksComputed(i, 1))).z];
-        P_O(i, :) = [res.at(symbol('O', LandMarksComputed(i, 1))).x res.at(symbol('O', LandMarksComputed(i, 1))).y res.at(symbol('O', LandMarksComputed(i, 1))).z];
+        L(i, :) = [Ans.at(symbol('L', LandMarksComputed(i, 1))).x Ans.at(symbol('L', LandMarksComputed(i, 1))).y Ans.at(symbol('L', LandMarksComputed(i, 1))).z];
+        M(i, :) = [Ans.at(symbol('M', LandMarksComputed(i, 1))).x Ans.at(symbol('M', LandMarksComputed(i, 1))).y Ans.at(symbol('M', LandMarksComputed(i, 1))).z];
+        N(i, :) = [Ans.at(symbol('N', LandMarksComputed(i, 1))).x Ans.at(symbol('N', LandMarksComputed(i, 1))).y Ans.at(symbol('N', LandMarksComputed(i, 1))).z];
+        O(i, :) = [Ans.at(symbol('O', LandMarksComputed(i, 1))).x Ans.at(symbol('O', LandMarksComputed(i, 1))).y Ans.at(symbol('O', LandMarksComputed(i, 1))).z];
     end
-    LandMarksComputed = [LandMarksComputed(:, 1) P_L P_M P_N P_O];
+    LandMarksComputed = [LandMarksComputed(:, 1) L M N O];
     
     AllPosesComputed(:,3) = abs(AllPosesComputed(:,3));
     
