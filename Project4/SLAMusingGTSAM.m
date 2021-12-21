@@ -104,6 +104,7 @@ function [LandMarksComputed, AllPosesComputed] = SLAMusingGTSAM(DetAll, K, TagSi
     plot3(AllPosesComputed(:,1),AllPosesComputed(:,2),AllPosesComputed(:,3),'o');
     hold on;
     title('Dataset Without GTSAM---No Pose');
+    xlabel('x');ylabel('y');zlabel('z');
     plot3(LandMarksComputed(:,2),LandMarksComputed(:,9), zeros(81,1), 'green*');
     legend('landmark poses','ground')
     hold off;
@@ -112,6 +113,7 @@ function [LandMarksComputed, AllPosesComputed] = SLAMusingGTSAM(DetAll, K, TagSi
     plot3(AllPosesComputed(:,1),AllPosesComputed(:,2),AllPosesComputed(:,3),'o');
     hold on;
     title('Dataset Without GTSAM---No Pose With Landmarks');
+    xlabel('x');ylabel('y');zlabel('z');
     plot3(LandMarksComputed(:,2),LandMarksComputed(:,3), zeros(81,1), 'r*');
     plot3(LandMarksComputed(:,4),LandMarksComputed(:,5), zeros(81,1),'b*');
     plot3(LandMarksComputed(:,6),LandMarksComputed(:,7), zeros(81,1),'green*');
@@ -229,6 +231,7 @@ function [LandMarksComputed, AllPosesComputed] = SLAMusingGTSAM(DetAll, K, TagSi
     plot3(AllPosesComputed(:,1),AllPosesComputed(:,2),AllPosesComputed(:,3),'o');
     hold on;
     title('Dataset With GTSAM---No Pose');
+    xlabel('x');ylabel('y');zlabel('z');
     plot3(LandMarksComputed(:,2),LandMarksComputed(:,3), zeros(81,1), 'g*');
     hold off;    legend('landmark poses','ground')
     
@@ -236,6 +239,7 @@ function [LandMarksComputed, AllPosesComputed] = SLAMusingGTSAM(DetAll, K, TagSi
     plot3(AllPosesComputed(:,1),AllPosesComputed(:,2),AllPosesComputed(:,3),'o');
     hold on;
     title('Dataset with GTSAM');
+    xlabel('x');ylabel('y');zlabel('z');
     plot3(LandMarksComputed(:,2),LandMarksComputed(:,3), LandMarksComputed(:,4), 'r*');
     plot3(LandMarksComputed(:,5),LandMarksComputed(:,6), LandMarksComputed(:,7),'b*');
     plot3(LandMarksComputed(:,8),LandMarksComputed(:,9), LandMarksComputed(:,10),'green*');
